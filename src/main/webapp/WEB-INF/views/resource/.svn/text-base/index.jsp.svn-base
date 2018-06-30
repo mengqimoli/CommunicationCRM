@@ -1,0 +1,227 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>资源管理</title>
+    <!-- 
+    	1. 引入外部资源
+    	---页面加载完毕后---
+    	2. 声明页面中可能会用到组件
+    	var resourceGrid;
+    	3. 缓存页面组件
+    	resourceGrid = $("#resourceGrid");
+    	4. 初始化组件
+    	5. 创建一个命令对象,来
+    	6. 对页面所有按钮,"统一"做监听
+     -->
+<%@ include file="/WEB-INF/views/common.jsp" %>
+<script type="text/javascript">
+    //---页面加载完毕后---
+	$(function(){
+		// 1. 声明页面中可能会用到组件
+		var resourceGrid,resourceDlg,resourceForm,resourceTree;
+		
+		// 2. 缓存页面组件
+		resourceGrid = $("#resourceGrid");
+		resourceDlg = $("#resourceDlg");
+		resourceForm = $("#resourceForm");
+		resourceTree = $("#resourceTree");
+		// 3. 初始化组件
+		
+		resourceTree.tree({
+			url:'/resource/getControllerTree',
+			method:'get',
+			animate: true,
+			onClick:function(node){
+				// 获取点击节点的ID
+				var resource = node.id;
+				if(!node.attributes){
+					//resourceGrid.datagrid("load",{"query.parentId":parentId});
+					resourceGrid.datagrid("load",{"query.moudle":resource});
+					resourceGrid.resourceName = resource;
+				}
+			},
+			onDblClick:function(node){
+				resourceTree.tree("toggle",node.target);
+			}
+		});
+		
+		// 4. 定义一个事件处理对象,把事件相关的逻辑都封装到一个对象上(命令对象)
+		var cmdObj = {
+			create:function(){
+					//console.debug('create:function');
+					//reset : 重置为初始值(定义方式:1.input的value属性写死;2.使用form的load方法加载后的属性)
+					//clear : 清空
+				resourceForm.form("clear");
+				resourceDlg.dialog("open");
+			},
+			edit:function(){
+					//console.debug('edit:function');
+				// 获取行选中数据
+				var rowData = resourceGrid.datagrid("getSelected");
+				// 判断
+				if(!rowData){
+					$.messager.alert("温馨提示","请选中一行!!","info");
+					return;
+				}
+				// 重置表单
+				resourceForm.form("reset");
+				// 打开对话框
+				resourceDlg.dialog("open");
+				
+				// 数据转换/封装
+				if(rowData.manager)
+					rowData['manager.id'] = rowData.manager.id;
+				if(rowData.parent)
+					rowData['parent.id'] = rowData.parent.id;
+				
+				// 加载数据
+				/*
+				 * form的load方法运行的机制:根据表单中元素的name属性,去json对象中,取值.
+					 例如: <input name="resource.name">  , {name:"zs",resource:{name:""}}  >> obj["resource.name"]
+				                             针对上面特殊情况,{name:"zs",resource:{name:""}}>> {name:"zs",resource:{name:"ls"},"resource.name":"zs"}
+				 */
+				resourceForm.form("load",rowData);
+				
+			},
+			del:function(){
+					console.debug('del:function');
+				
+			},
+			refresh : function(){
+					//console.debug('refresh');
+				resourceGrid.datagrid("reload");
+				
+			},
+			save: function(){
+				resourceForm.form("submit",{
+					url:"resource_save.action",
+					success:function(data){
+						// 把响应结果转换成JSON对象
+						data = $.parseJSON(data);
+						if(data.success){
+							// 关闭对话框
+							resourceDlg.dialog("close");
+							// 提示,刷新
+							$.messager.alert("温馨提示",data.msg,"info",function(){
+								// 刷新表格数据
+								resourceGrid.datagrid("reload");
+								// 刷新树的数据
+								resourceTree.tree("reload");
+								// 刷新comboTree
+								parentComboTree.combotree("reload");
+							});
+						}else{
+							$.messager.alert("温馨提示",data.msg,"info",function(){
+								// 根据错误码,定位到单元格
+							});
+						}
+					}
+				});
+			},
+			cancel : function(){
+				resourceDlg.dialog("close");
+			},
+			importMoudleResource : function(){
+				
+				$.post("/resource/importMoudleResource",{controller:resourceGrid.resourceName},function(){
+					// 刷新表格数据
+					resourceGrid.datagrid("reload");
+				});
+			}
+			
+		};
+		
+		// 5. 对页面所有按钮,"统一"做监听
+		$("a[data-cmd]").bind("click",function(){
+			// 获取cmd内容
+			var cmd = $(this).data("cmd");
+			// 判断操作
+			if(cmd){
+				cmdObj[cmd]();
+			}
+		});
+	});
+</script>
+</head>
+<body>
+<div class="easyui-layout" fit="true" border="false">
+	<div data-options="{region:'west',width:300,bodyCls:'border-right',split:true}">
+		<ul id="resourceTree">
+		</ul>
+	</div>
+	<div data-options="{region:'center',border:false}">
+		<!-- 1. 表格
+		url="resource_list.action"-->
+		<table id="resourceGrid" 
+					class="easyui-datagrid"
+					url="/resource/list"
+					fit="true"
+					border="false"
+					fitColumns="true"	
+					striped="true"
+					toolbar="#resourceTb"
+					rownumbers="true"
+					singleSelect="true"	
+					pagination="true"
+						>
+			<thead>
+				<tr>
+					<!-- <th data-options="{field:'id',width:1}">资源编号</th> -->
+					<th data-options="{field:'name',width:3}">资源名称</th>
+					<th data-options="{field:'url',width:5}">资源地址</th>
+					<th data-options="{field:'controller',width:5}">模块名称</th>
+				</tr>
+			</thead>		
+		</table>
+		<!-- 2. 表格工具栏-->
+		<div id="resourceTb">
+			<a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true"  data-cmd="create">添加</a>
+			<a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-edit" plain="true" data-cmd="edit">编辑</a>
+			<a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-remove" plain="true" data-cmd="del">删除</a>
+			<a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-reload" plain="true" data-cmd="refresh">刷新</a>
+			<a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-reload" plain="true" data-cmd="importMoudleResource">导入资源</a>
+		</div>
+		<!-- 3. 对话框-->
+		<div id="resourceDlg" class="easyui-dialog"
+					style="width: 300px;height: 200px;"
+					title="添加/编辑部门信息"
+					closed="true"
+					modal="true"
+					buttons="#resourceDlgBtn"
+			>
+			<form id="resourceForm" method="post">
+				<input name="id" type="hidden">
+				<table align="center" style="margin-top: 15px;">
+					<tr>
+						<td>部门编号</td>
+						<td><input name="sn"></td>
+					</tr>
+					<tr>
+						<td>部门名称</td>
+						<td><input name="name"></td>
+					</tr>
+					<tr>
+						<td>部门经理</td>
+						<td>
+						</td>
+					</tr>
+					<tr>
+						<td>上级部门</td>
+						<td>
+						</td>
+					</tr>
+				</table>
+			</form>
+		</div>
+		
+		<!-- 4. 对话框按钮-->
+		<div id="resourceDlgBtn">
+			<a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-ok" data-cmd="save">保存</a>
+			<a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" data-cmd="cancel">取消</a>
+		</div>
+	</div>
+</div>
+</body>
+</html>

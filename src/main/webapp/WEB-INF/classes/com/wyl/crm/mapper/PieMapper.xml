@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.PieMapper">
+	<cache />
+	
+	<sql id="querySql">
+		<where>
+			<if test="inputTimeStart!=null and inputTimeStart!=''">
+				and c.inputTime >= #{inputTimeStart}
+			</if>
+			<if test="inputTimeEnd!=null and inputTimeEnd!=''">
+				and c.inputTime &lt;= #{inputTimeEnd}
+			</if>
+		</where>
+	</sql>
+
+	<select id="getPie" resultMap="pieMap">
+		select c.status s,count(*) c from
+		t_customer c 
+		<include refid="querySql" />
+		GROUP BY c.status
+	</select>
+
+	<select id="getPieByCustomerStatus" resultMap="pieMap">
+		select
+		c.customerStatus_id s,
+		COUNT(*) c
+		from
+		t_customer c
+		left join t_systemdictionaryitem st on c.customerStatus_id=st.id
+		<include refid="querySql" />
+		GROUP BY
+		c.customerStatus_id
+	</select>
+	
+	<select id="getPieByCustomerSource" resultMap="pieMap">
+		select
+		c.customerSource_id s,
+		COUNT(*) c
+		from
+		t_customer c
+		left join t_systemdictionaryitem st on c.customerSource_id=st.id
+		<include refid="querySql" />
+		GROUP BY
+		c.customerSource_id
+	</select>
+
+	<resultMap type="Pie" id="pieMap">
+		<result column="s" property="status" />
+		<result column="c" property="count" />
+	</resultMap>
+
+</mapper>

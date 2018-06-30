@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.GuaranteeMapper">
+	<!--查询全部 List<T> getAll(); -->
+	<select id="getAll" resultType="Guarantee">
+		select * from t_guarantee
+	</select>
+
+	<!--查询一条 T get(Serializable id); -->
+	<select id="getOne" parameterType="long" resultMap="guaranteeResultMap">
+		select
+		con.id,
+		con.sn,
+		con.expireTime,
+		con.status,
+
+		cus.id cusid,
+		cus.name
+		cuname
+
+		FROM t_guarantee con
+		LEFT JOIN t_customer cus on
+		con.customer_id=cus.id
+		where con.id=#{id}
+	</select>
+
+	<!--删除 void delete(Serializable id); -->
+	<delete id="delete" parameterType="long">
+		delete from t_guarantee where
+		id=#{id}
+	</delete>
+
+
+	<update id="update" parameterType="Guarantee">
+		update t_guarantee
+		<set>
+			sn=#{sn},
+			expireTime=#{expireTime},
+			customer_id=#{customer.id},
+			<if test="status!=null and status!=0">
+				status=#{status}
+			</if>
+		</set>
+		where
+		id=#{id}
+	</update>
+
+	<!--添加 void save(T t); -->
+	<insert id="save" parameterType="Guarantee" useGeneratedKeys="true"
+		keyColumn="id" keyProperty="id">
+		insert into
+		t_guarantee(sn,customer_id,expireTime,status)
+		values(#{sn},#{customer.id},#{expireTime},#{status})
+	</insert>
+
+	<sql id="whereSql">
+		<where>
+			<if test="searchKey !=null and searchKey !=''">
+				(con.sn like concat("%",#{searchKey},"%") or cus.name
+				like concat("%",#{searchKey},"%"))
+			</if>
+			<if test="beginTime != null">
+				and con.expireTime >= #{beginTime}
+			</if>
+			<if test="endTime != null">
+				and con.expireTime &lt;= #{endTime}
+			</if>
+			<if test="sn !=null and sn!=''">
+				and con.sn = #{sn}
+			</if>
+
+			<if test="customerId != null">
+				and con.customer_id = #{customerId}
+			</if>
+		</where>
+	</sql>
+
+	<!--long getTotalByQuery(BaseQuery query);//根据条件查询总条数 -->
+	<select id="queryCount" parameterType="GuaranteeQuery"
+		resultType="long">
+		select count(*) from t_guarantee con
+		left join t_customer cus on
+		con.customer_id=cus.id
+		<include refid="whereSql" />
+	</select>
+
+	<!-- List<T> getData(BaseQuery query);//根据条件查询数据； -->
+	<select id="queryPage" parameterType="GuaranteeQuery" resultMap="guaranteeResultMap">
+		select
+		con.id,
+		con.sn,
+		con.expireTime,
+		con.status,
+
+		cus.id cusid,
+		cus.name
+		cuname
+
+		FROM t_guarantee con
+		LEFT JOIN t_customer cus on
+		con.customer_id=cus.id
+		<include refid="whereSql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<resultMap type="Guarantee" id="guaranteeResultMap">
+		<id column="id" property="id" />
+		<result column="sn" property="sn" />
+		<result column="signTime" property="signTime" />
+		<result column="status" property="status" />
+
+		<!-- 封装customer -->
+		<association property="customer" javaType="Customer">
+			<id column="cusid" property="id" />
+			<result column="cuname" property="name" />
+		</association>
+
+	</resultMap>
+
+</mapper>

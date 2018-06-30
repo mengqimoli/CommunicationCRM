@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.OrderItemMapper">
+	<cache />
+
+	<!--删除 void delete(Serializable id); -->
+	<delete id="delete" parameterType="long">
+		delete from t_orderitem
+		where
+		id=#{id}
+	</delete>
+
+	<update id="update" parameterType="OrderItem">
+		update t_orderitem
+		<set>
+			order_id=#{order.id},
+			number=#{number},
+			intro=#{intro},
+			deviceType_id=#{deviceType.id},
+			unitType_id=#{unitType.id},
+			<if test="status!=null and status!=0">
+				status=#{status}
+			</if>
+		</set>
+		where
+		id=#{id}
+	</update>
+
+	<!--添加 void save(T t); -->
+	<insert id="save" parameterType="OrderItem" keyProperty="id"
+		useGeneratedKeys="true">
+		insert into
+		t_orderitem(order_id,number,intro,status,deviceType_id,unitType_id)
+		values(#{order.id},#{number},#{intro},#{status},#{deviceType.id},#{unitType.id})
+	</insert>
+
+	<sql id="whereSql">
+		<where>
+			<if test="orderId!=null">
+				item.order_id=#{orderId}
+			</if>
+			<if test="managerRole==false">
+				and seller.id = #{currentUserId}
+			</if>
+		</where>
+	</sql>
+
+	<!--long getTotalByQuery(BaseQuery query);//根据条件查询总条数 -->
+	<select id="queryCount" parameterType="OrderItemQuery"
+		resultType="long">
+		select count(*) from t_orderitem item
+		left join t_order con
+		on(item.order_id = con.id)
+		left join t_employee seller
+		on(con.seller_id=seller.id)
+		<include refid="whereSql" />
+	</select>
+
+	<!-- List<T> getData(BaseQuery query);//根据条件查询数据； -->
+	<select id="queryPage" parameterType="OrderItemQuery" resultMap="orderItemResultMap">
+		select
+
+		item.id,
+		item.number,
+		item.intro,
+		item.status,
+
+		con.id conid,
+		con.sn consn,
+
+		seller.id sellerid,
+		
+		deviceType.id deviceTypeId,
+		deviceType.name deviceTypeName,
+
+		unitType.id unitTypeId,
+		unitType.name unitTypeName
+
+		FROM t_orderitem item
+		left join t_order con on(item.order_id = con.id)
+		left join t_employee
+		seller on(con.seller_id=seller.id)
+		left join t_systemdictionaryitem deviceType on item.deviceType_id=deviceType.id
+		left join t_systemdictionaryitem unitType on item.unitType_id=unitType.id
+		<include refid="whereSql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<resultMap type="OrderItem" id="orderItemResultMap">
+		<id column="id" property="id" />
+		<result column="number" property="number" />
+		<result column="intro" property="intro" />
+		<result column="status" property="status" />
+
+		<association property="order" javaType="Order">
+			<id column="conid" property="id" />
+			<result column="consn" property="sn" />
+		</association>
+		
+		<!--设备类型 -->
+		<association property="deviceType" javaType="SystemDictionaryItem">
+			<id column="deviceTypeId" property="id" />
+			<result column="deviceTypeName" property="name" />
+		</association>
+
+		<!--设备型号 -->
+		<association property="unitType" javaType="SystemDictionaryItem">
+			<id column="unitTypeId" property="id" />
+			<result column="unitTypeName" property="name" />
+		</association>
+		
+	</resultMap>
+
+	<!-- public List<OrderItem> getItem(Long id)查询明细的数据 -->
+	<select id="getItem" parameterType="long" resultType="OrderItem">
+		select
+		*
+		from t_orderitem
+		where order_id=#{id}
+	</select>
+	
+	<!--设备类型 -->
+	<select id="getDeviceType" resultType="SystemDictionaryItem">
+		select i.id,i.name
+		from
+		t_systemdictionaryitem i
+		left join t_systemdictionarytype s
+		on
+		i.type_id=s.id
+		where s.sn='deviceType'
+	</select>
+
+	<!--设备型号 -->
+	<select id="getUnitType" resultType="SystemDictionaryItem">
+		select i.id,i.name
+		from
+		t_systemdictionaryitem i
+		left join t_systemdictionarytype s
+		on
+		i.type_id=s.id
+		where s.sn='unitType'
+	</select>
+
+</mapper>

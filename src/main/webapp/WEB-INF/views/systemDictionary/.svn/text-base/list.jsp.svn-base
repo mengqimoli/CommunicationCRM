@@ -1,0 +1,274 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>数据字典管理</title>
+<%@ include file="/WEB-INF/views/common.jsp"%>
+<script type="text/javascript">
+	// 解决页面两个grid的布局问题
+	$(function(){
+		function autoResizeWin(){
+			// 1. 获取页面宽度
+			//console.debug(window);
+			//console.debug(document);
+			var screenWidth = document.documentElement.clientWidth;
+			// 2. 获取页面宽度的一半
+			var halfWidth = screenWidth/2;
+			// 3. 把west组件的宽度,设置为屏幕的一半宽度
+			$("#westPanel").panel("resize",{
+				width:halfWidth
+			});
+			// 4. 通知layout重新布局(center部门自动适应)
+			$("#layout").layout();
+		}
+		// 在窗口改变时,重新布局
+		$(window).resize(autoResizeWin);
+		
+		autoResizeWin();
+	});
+	
+	
+	$(function(){
+		var systemDictionaryDialog= $("#systemDictionary-dialog");
+		var systemDictionaryForm= $("#systemDictionary-form");
+	    var systemDictionaryDatagrid= $("#systemDictionary-datagrid");
+	    var systemDictionaryItemDatagrid= $("#systemDictionaryItem-datagrid");
+	    var systemDictionaryItemDialog= $("#systemDictionaryItem-dialog");
+	    var systemDictionaryItemForm= $("#systemDictionaryItem-form");
+	    var systemDictionaryCombo= $("#systemDictionaryCombo");
+	    var parent={};
+	    
+	    systemDictionaryDatagrid.datagrid({
+	    	onClickRow:function(index,rowData){
+	    		systemDictionaryItemDatagrid.datagrid("load",{
+	    			"parentId" : rowData.id 
+	    		});
+	    		parent=rowData;
+	    	}
+	    });
+		
+		var cmdObj = {
+			create:function(){
+				systemDictionaryForm.form("clear");
+				systemDictionaryDialog.dialog("open");
+			},
+			edit:function(){
+				var rowData = systemDictionaryDatagrid.datagrid("getSelected");
+				if(rowData){
+					systemDictionaryForm.form("clear");
+					systemDictionaryDialog.dialog("open");
+					systemDictionaryForm.form("load",rowData);
+				}
+			},
+			refresh:function(){
+				systemDictionaryDatagrid.datagrid("load");
+				$("#systemDictionaryItemCreateBtn").linkbutton('disable');
+			},
+			addItem:function(){
+				systemDictionaryItemForm.form('clear');
+				if(parent){
+					// 绑定目录
+					systemDictionaryCombo.combo('setValue',parent.id);
+					systemDictionaryCombo.combo('setText',parent.title);
+				}
+
+				
+				systemDictionaryItemDialog.dialog('open');
+			},
+			editItem:function(){
+				var rowData = systemDictionaryItemDatagrid.datagrid("getSelected");
+				if(!rowData){
+					sAlert("请选中一行数据 ！");
+					return;
+				}
+				cmdObj.addItem();
+				systemDictionaryItemForm.form("load",rowData);
+			},
+			save:function(){
+				systemDictionaryForm.form("submit",{
+					success : function(data){
+						data = $.parseJSON(data);
+						if(data.success){
+							systemDictionaryDialog.dialog("close");
+							systemDictionaryDatagrid.datagrid("load");
+						}
+					}
+				});
+			},
+			saveItem:function(){
+				systemDictionaryItemForm.form("submit",{
+					success : function(data){
+						data = $.parseJSON(data);
+						if(data.success){
+							systemDictionaryItemDialog.dialog("close");
+							sAlert("字典明细保存成功 ！",function(){
+								systemDictionaryItemDatagrid.datagrid("load");
+							});
+						}
+					}
+				});
+			},
+			deleteItem:function(){
+				
+			},
+			refreshItem:function(){
+				systemDictionaryItemDatagrid.datagrid("load");
+			},
+			cancel:function(){
+				systemDictionaryDialog.dialog("close");
+			},
+			cancelItem:function(){
+				systemDictionaryItemDialog.dialog("close");
+			}
+		};
+		
+		$("a[data-cmd]").bind("click",function(){
+			var cmd=$(this).data("cmd");
+			cmdObj[cmd]();
+		});
+	});
+</script>
+</head>
+<body>
+	<div id="systemDictionary-dialog-buttons">
+		<a href="javascript:void(0)" class="easyui-linkbutton"
+			iconCls="icon-save" data-cmd="save">保存</a>
+		<a
+			href="javascript:void(0)" class="easyui-linkbutton"
+			iconCls="icon-cancel" data-cmd="cancel">取消</a>
+	</div>
+	<div id="systemDictionaryItem-dialog-buttons">
+		<a href="javascript:void(0)" class="easyui-linkbutton"
+			iconCls="icon-save" data-cmd="saveItem">保存</a>
+		<a
+			href="javascript:void(0)" class="easyui-linkbutton"
+			iconCls="icon-cancel" data-cmd="cancelItem">取消</a>
+	</div>
+
+	<div id="systemDictionary-dialog" class="easyui-dialog" title="数据添加"
+		style="width: 400px; padding: 10px 20px"
+		buttons="#systemDictionary-dialog-buttons" closed="true" modal="true">
+		<form action="systemDictionary_save.action" method="post" id="systemDictionary-form">
+			<input type="hidden" name="id" />
+			<table style="width: 100%">
+				<tr>
+					<td>字典名</td>
+					<td><input type="text" name="title" class="easyui-validatebox"
+						data-options="required:true" /></td>
+				</tr>
+				<tr>
+					<td>字典编号</td>
+					<td><input type="text" name="sn"
+						class="easyui-validatebox" data-options="required:true" /></td>
+				</tr>
+				<tr>
+					<td>字典描述</td>
+					<td>
+						<textarea rows="5" style="width: 200px;" name="intro">
+						</textarea>
+					</td>
+				</tr>
+			</table>
+		</form>
+	</div>
+
+	
+	<div id="systemDictionary-datagrid-toolbar">
+		<div>
+		<a href="javascript:void(0)" class="easyui-linkbutton"
+			iconCls="icon-add" plain="true" data-cmd="create">新建</a>
+		<a
+			href="javascript:void(0)" class="easyui-linkbutton"
+			iconCls="icon-edit" plain="true" data-cmd="edit">编辑</a>
+		<a
+			href="javascript:void(0)" class="easyui-linkbutton"
+			iconCls="icon-reload" plain="true" data-cmd="refresh">刷新</a>
+		</div>
+	</div>
+	
+	<div id="systemDictionaryItem-datagrid-toolbar">
+		<div>
+		<a id="systemDictionaryItemCreateBtn" href="javascript:void(0)" class="easyui-linkbutton"  
+			iconCls="icon-add"  plain="true" data-cmd="addItem">新建</a>
+		<a	href="javascript:void(0)" class="easyui-linkbutton"
+			iconCls="icon-edit" plain="true" data-cmd="editItem">编辑</a>
+		<a	href="javascript:void(0)" class="easyui-linkbutton"
+			iconCls="icon-remove" plain="true" data-cmd="deleteItem">删除</a>
+		<a  href="javascript:void(0)" class="easyui-linkbutton"
+			iconCls="icon-reload" plain="true" data-cmd="refreshItem">刷新</a>
+		</div>
+	</div>
+	
+	<div id="systemDictionaryItem-dialog" class="easyui-dialog" title="字典明细-数据添加/编辑"
+		style="width: 400px; padding: 10px 20px"
+		buttons="#systemDictionaryItem-dialog-buttons" closed="true" modal="true">
+		<form id="systemDictionaryItem-form" action="systemDictionaryItem_save.action" method="post">
+			<table>
+				<tr>
+					<td>字典明细名称</td>
+					<td><input type="text" name="title" class="easyui-validatebox"
+						data-options="required:true" /></td>
+				</tr>
+				<tr>
+					<td>字典目录名称</td>
+					<td>
+						 <input id="systemDictionaryCombo" class="easyui-combobox" style="width:155px;"
+									name="parent.id"
+									data-options="
+									url:'/systemDictionary_list',
+									method:'get',
+									required:true,
+									valueField:'id',
+									textField:'title',
+									panelHeight:'auto'
+									">
+					</td>
+				</tr>
+				<tr>
+					<td>字典明细序号</td>
+					<td><input type="text" name="sequence"
+						class="easyui-validatebox" data-options="required:true" /></td>
+				</tr>
+				<tr>
+					<td>字典明细描述</td>
+					<td>
+						<textarea rows="5" style="width: 200px;resize:none;" name="intro" >
+						</textarea>
+					</td>
+				</tr>
+			</table>
+		</form>
+	</div>
+	
+	
+	<div class="easyui-layout" id="layout" data-options="fit:true,border:false">
+		<div id="westPanel" region="west"  style="width:300px;"  headerCls="border-right" bodyCls="border-right">
+			<table id="systemDictionary-datagrid" title="数据字典目录"
+				data-options="fit:true,border:false,url:'systemDictionary_list.action',fitColumns:true,singleSelect:true,pagination:true,toolbar:'#systemDictionary-datagrid-toolbar'">
+				<thead>
+					<tr>
+						<th data-options="field:'title',width:80">字典名</th>
+						<th data-options="field:'sn',width:100">字典编号</th>
+					</tr>
+				</thead>
+			</table>
+		</div>
+	
+		<div region="center" id="center" border="false"  headerCls="border-right" >
+			<table class="easyui-datagrid" id="systemDictionaryItem-datagrid"
+				border="false" 
+				data-options="fit:true,url:'systemDictionaryItem_list.action',fitColumns:true,singleSelect:true,title:'数据字典明细',pagination:true,toolbar:'#systemDictionaryItem-datagrid-toolbar'">
+				<thead>
+					<tr>
+						<th data-options="field:'title',width:80">字典项名</th>
+						<th data-options="field:'sequence',width:100">序号</th>
+					</tr>
+				</thead>
+			</table>
+		</div>
+	</div>
+	
+</body>
+</html>

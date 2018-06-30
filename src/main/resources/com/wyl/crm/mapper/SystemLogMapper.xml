@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace : 独立的命名空间，可以使Mapper接口的地址（把dao包改为mapper） 例如： 接口地址为com.wyl.crm.mapper.SystemLogMapper 
+	命名空间为com.wyl.crm.mapper.SystemLogMapper（和接口地址相同） 结果：可以不用写Mapper实现，由Spring代理实现 -->
+<mapper namespace="com.wyl.crm.mapper.SystemLogMapper">
+	<select id="createTable">
+		CREATE TABLE IF NOT EXISTS `t_systemlog` (
+		`id`
+		bigint(20) NOT NULL AUTO_INCREMENT,
+		`opUser_id` bigint(20) DEFAULT
+		NULL,
+		`opTime` date DEFAULT NULL,
+		`opIp` varchar(50) DEFAULT NULL,
+		`function` varchar(100) DEFAULT NULL,
+		PRIMARY KEY (`id`)
+		) ENGINE=InnoDB
+		DEFAULT CHARSET=utf8;
+	</select>
+
+	<insert id="save" parameterType="SystemLog" useGeneratedKeys="true">
+		insert into t_systemLog(opUser_id,opTime,opIp,function)
+		values(#{opUser.id},#{opTime},#{opIp},#{function})
+
+	</insert>
+
+	<!-- 删 -->
+	<delete id="delete" parameterType="long">
+		delete from t_systemLog where
+		id=#{id}
+	</delete>
+	<!-- a删除全部 -->
+	<delete id="deleteAll" parameterType="long">
+		delete from t_systemlog where id in
+		<foreach collection="list" item="id" open="(" close=")"
+			separator=",">
+			#{id}
+		</foreach>
+	</delete>
+
+	<select id="getOne" parameterType="long" resultType="SystemLog">
+		select *
+		from t_systemLog where id = #{id}
+	</select>
+
+	<select id="getAll" resultType="SystemLog">
+		select * from t_systemLog
+	</select>
+
+	<!-- 公共sql -->
+	<sql id="querySql">
+		<where>
+			<if test="searchKey!=null and searchKey!=''">
+				(function like #{searchKey} or e.username like
+				#{searchKey})
+			</if>
+			<if test="username!=null and username!=''">
+				and e.username like concat('%',#{username},'%')
+			</if>
+			<if test="opIp!=null and opIp!=''">
+				and log.opIp like concat('%',#{opIp},'%')
+			</if>
+			<if test="function!=null and function!=''">
+				and log.function like concat('%',#{function},'%')
+			</if>
+			<if test="inputTimeStart!=null and inputTimeStart!=''">
+				and log.opTime >= #{inputTimeStart}
+			</if>
+			<if test="inputTimeEnd!=null and inputTimeEnd!=''">
+				and log.opTime &lt;= #{inputTimeEnd}
+			</if>
+		</where>
+	</sql>
+
+	<!-- 分页集合查询 -->
+	<select id="queryPage" parameterType="SystemLogQuery" resultMap="SystemLogResultMap">
+		select log.*, e.id eid, e.username eusername
+		from t_systemlog log left
+		join
+		t_employee e on log.opUser_id=e.id
+		<include refid="querySql" />
+		order by log.opTime desc
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<resultMap type="SystemLog" id="SystemLogResultMap">
+		<id column="id" property="id" />
+		<result column="opTime" property="opTime" />
+		<result column="opIp" property="opIp" />
+		<result column="function" property="function" />
+		<association property="opUser" column="opUser_id"
+			javaType="Employee">
+			<id column="eid" property="id" />
+			<result column="eusername" property="username" />
+		</association>
+	</resultMap>
+
+	<select id="queryCount" resultType="long" parameterType="SystemLogQuery">
+		select
+		count(id) from t_systemlog
+	</select>
+
+</mapper> 

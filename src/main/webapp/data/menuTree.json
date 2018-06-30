@@ -1,0 +1,105 @@
+[
+	{
+	    "id" : 1,
+		"text":"业务管理",
+		"children" :[
+			{
+				"id" : 11,
+				"text":"潜在客户",
+				"url":"/potentialCustomer/index.do"
+			}
+			,{
+				"id" : 12,
+				"text":"潜在客户开发计划"	,
+				"url":"/customerDevPlan/index.do"
+			}
+			,{
+				"id" : 13,
+				"text":"客户跟进历史",
+				"url":"/customerTraceHistory/index.do"
+			}
+			,{
+				"id" : 14,
+				"text":"客户移交记录",
+				"url":"/customerTransfer/index.do"
+			}
+			,{
+				"id" : 15,
+				"text":"客户资源池",
+				"url":"/customer/customerResourcePool.do"
+			}
+			,{
+				"id" : 16,
+				"text":"客户信息管理",
+				"url":"/customer/index.do"
+			}
+		]
+	}
+	,{
+		"id" : 2,
+		"text":"订单合同管理",
+		"children":[
+			{
+				"id" : 21,
+				"text":"定金订单管理",
+				"url":"/order/index.do"
+			}
+			,{
+				"id" : 22,
+				"text":"合同管理",
+				"url":"/contract/index.do"
+			}
+			,{
+				"id" : 23,
+				"text":"保修管理",
+				"url":"/guarantee/index.do"
+			}
+		]
+	}
+	,{
+	    "id" : 3,
+		"text":"系统管理",
+		"children":[
+			{
+				"id" : 31,
+				"text":"员工管理",
+				"url":"/employee/index.do"
+			}
+			,{
+				"id" : 32,
+				"text":"部门管理",
+				"url":"/department/index.do"
+			}
+			,{
+				"id" : 33,
+				"text":"资源管理",
+				"url":"/resource/index.do"
+			}
+			,{
+				"id" : 34,
+				"text":"权限管理",
+				"url":"/permission/index.do"
+			}
+			,{
+				"id" : 35,
+				"text":"角色管理",
+				"url":"/role/index.do"
+			}
+			,{
+				"id" : 36,
+				"text":"系统菜单管理",
+				"url":"/systemMenu/index.do"
+			}
+			,{
+				"id" : 37,
+				"text":"数据字典管理",
+				"url":"/systemDictionaryType/index.do"
+			}
+			,{
+				"id" : 38,
+				"text":"系统日志管理",
+				"url":"/systemLog/index.do"
+			}
+		]
+	}
+]

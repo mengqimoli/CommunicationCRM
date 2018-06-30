@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.ContractMapper">
+	<!--查询全部 List<T> getAll(); -->
+	<select id="getAll" resultType="Contract">
+		select * from t_contract
+	</select>
+
+	<!--查询一条 T get(Serializable id); -->
+	<select id="getOne" parameterType="long" resultMap="contractResultMap">
+		select
+		con.id,
+		con.sn,
+		con.signTime,
+		con.status,
+		con.sum,
+
+		cus.id cusid,
+		cus.name
+		cuname,
+
+		emp.id empid,
+		emp.realName empname
+
+		FROM t_contract con
+		LEFT JOIN
+		t_customer cus on con.customer_id=cus.id
+		LEFT JOIN t_employee emp ON
+		con.seller_id = emp.id 
+		where con.id=#{id}
+	</select>
+
+	<!--删除 void delete(Serializable id); -->
+	<delete id="delete" parameterType="long">
+		delete from t_contract where
+		id=#{id}
+	</delete>
+
+
+	<update id="update" parameterType="Contract">
+		update t_contract
+		<set>
+			sn=#{sn},
+			signTime=#{signTime},
+			sum=#{sum},
+			customer_id=#{customer.id},
+			seller_id=#{seller.id},
+			<if test="status!=null and status!=0">
+				status=#{status}
+			</if>
+		</set>
+		where
+		id=#{id}
+	</update>
+
+	<!--添加 void save(T t); -->
+	<insert id="save" parameterType="Contract" useGeneratedKeys="true"
+		keyColumn="id" keyProperty="id">
+		insert into
+		t_contract(sn,customer_id,seller_id,signTime,status,sum)
+		values(#{sn},#{customer.id},#{seller.id},#{signTime},#{status},#{sum})
+	</insert>
+
+	<sql id="whereSql">
+		<where>
+			<if test="searchKey !=null and searchKey !=''">
+				(con.sn like concat("%",#{searchKey},"%") or cus.name
+				like concat("%",#{searchKey},"%"))
+			</if>
+			<if test="beginTime != null">
+				and con.signTime >= #{beginTime}
+			</if>
+			<if test="endTime != null">
+				and con.signTime &lt;= #{endTime}
+			</if>
+			<if test="sn !=null and sn!=''">
+				and con.sn = #{sn}
+			</if>
+			<if test="sum !=null and sum!=''">
+				and con.sum =#{sum}
+			</if>
+			<if test="customerId != null">
+				and con.customer_id = #{customerId}
+			</if>
+			<if test="sellerId != null">
+				and con.seller_id = #{sellerId}
+			</if>
+			<if test="managerRole==false">
+				and con.seller_id = #{currentUserId}
+			</if>
+		</where>
+	</sql>
+
+	<!--long getTotalByQuery(BaseQuery query);//根据条件查询总条数 -->
+	<select id="queryCount" parameterType="ContractQuery"
+		resultType="long">
+		select count(*) from t_contract con
+		LEFT JOIN t_customer cus on
+		con.customer_id=cus.id
+		<include refid="whereSql" />
+	</select>
+
+	<!-- List<T> getData(BaseQuery query);//根据条件查询数据； -->
+	<select id="queryPage" parameterType="ContractQuery" resultMap="contractResultMap">
+		select
+		con.id,
+		con.sn,
+		con.signTime,
+		con.status,
+		con.sum,
+
+		cus.id cusid,
+		cus.name cuname,
+
+		emp.id empid,
+		emp.realName empname
+
+		FROM t_contract con
+		LEFT JOIN t_customer cus on con.customer_id=cus.id
+		LEFT JOIN t_employee
+		emp ON con.seller_id = emp.id
+		<include refid="whereSql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<resultMap type="Contract" id="contractResultMap">
+		<id column="id" property="id" />
+		<result column="sn" property="sn" />
+		<result column="sum" property="sum" />
+		<result column="signTime" property="signTime" />
+		<result column="status" property="status" />
+
+		<!-- 封装customer -->
+		<association property="customer" javaType="Customer">
+			<id column="cusid" property="id" />
+			<result column="cuname" property="name" />
+		</association>
+
+		<association property="seller" javaType="Employee">
+			<id column="empid" property="id" />
+			<result column="empname" property="realName" />
+		</association>
+
+		<collection property="contractItem" select="findItemsByContractId"
+			ofType="ContractItem" javaType="java.util.List" column="id">
+			<id property="id" column="id" />
+			<result property="sum" column="sum" />
+			<result property="payTime" column="payTime" />
+			<result property="money" column="money" />
+			<result property="scale" column="scale" />
+			<result property="intro" column="intro" />
+			<result property="status" column="status" />
+		</collection>
+	</resultMap>
+
+	<select id="findItemsByContractId" resultType="ContractItem"
+		parameterType="long">
+		select * from t_contractitem where contract_id=#{id}
+	</select>
+
+</mapper>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:jee="http://www.springframework.org/schema/jee"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="
+			http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+			http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+			http://www.springframework.org/schema/jee http://www.springframework.org/schema/jee/spring-jee.xsd
+			http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+			http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+	<!-- 
+		以前：
+		   getSqlSession().select("xxx.xxx.get",参数)
+		   
+	        现在：
+	       有Spring框架，帮助我们初始化接口的实例
+	       getSqlSession().getMapper(this.mapperInterface);
+	 -->
+	
+	<!-- 方式一，配置继承 -->
+	<!-- <bean id="baseMapper" class="org.mybatis.spring.mapper.MapperFactoryBean" abstract="true">
+		接口使用sqlSessionFactory
+		<property name="sqlSessionFactory" ref="sqlSessionFactory" />
+	</bean>
+	
+	<bean id="userMapper" parent="baseMapper">
+		配置mapper接口的全类名
+		<property name="mapperInterface" value="com.wyl.crm.mapper.EmployeeMapper" />
+	</bean>
+	<bean id="deptMapper" parent="baseMapper">
+		配置mapper接口的全类名
+		<property name="mapperInterface" value="com.wyl.crm.mapper.DepartmentMapper" />
+	</bean> -->
+	
+	<!-- 方式二 -->
+	<!-- 配置“Mapper接口”扫描 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<!-- 接口扫描路径(包) -->
+		<property name="basePackage" value="com.wyl.crm.mapper"></property>
+	</bean>
+	
+	
+</beans>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.RoleMapper">
+	<!-- 建表 -->
+	<select id="createTable">
+		CREATE TABLE IF NOT EXISTS `t_role` (
+		`id` bigint(20)
+		NOT NULL AUTO_INCREMENT,
+		`sn` varchar(40) DEFAULT NULL,
+		`name`
+		varchar(40) DEFAULT NULL,
+		PRIMARY KEY (`id`)
+		) ENGINE=InnoDB DEFAULT
+		CHARSET=utf8;
+	</select>
+
+	<!-- 添删改 -->
+	<insert id="save" parameterType="Role" keyProperty="id"
+		useGeneratedKeys="true">
+		insert into t_role(sn,name,intro)
+		values(#{sn},#{name},#{intro})
+
+	</insert>
+	<update id="update" parameterType="Role">
+		update t_role
+		<set>
+			name=#{name},
+			sn=#{sn},
+			intro=#{intro},
+		</set>
+		where
+		id=#{id}
+	</update>
+	<delete id="delete" parameterType="long">
+		delete from t_role where
+		id=#{id}
+	</delete>
+
+	<!-- 普通查询 -->
+	<select id="getOne" parameterType="long" resultType="Role">
+		select *
+		from t_role where id = #{id}
+	</select>
+	<select id="getAll" resultType="Role">
+		select * from t_role
+	</select>
+
+	<!-- 高级查询 -->
+	<sql id="querySql">
+		<where>
+			<if test="searchKey!=null and searchKey!=''">
+				(name like #{searchKey} or sn like #{searchKey})
+			</if>
+		</where>
+	</sql>
+	<!-- 高级查询和分页 -->
+	<select id="queryPage" parameterType="RoleQuery" resultMap="roleMap">
+		select * from t_role
+		<include refid="querySql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<resultMap type="Role" id="roleMap">
+		<id column="id" property="id" />
+		<result column="sn" property="sn" />
+		<result column="name" property="name" />
+		<result column="intro" property="intro" />
+		<collection property="permissions" ofType="Permission"
+			select="com.wyl.crm.mapper.PermissionMapper.getRolePermissions"
+			column="id">
+		</collection>
+	</resultMap>
+
+	<select id="queryCount" parameterType="RoleQuery" resultType="long">
+		select count(id) from t_role
+		<include refid="querySql" />
+	</select>
+
+	<!-- 批量添加关联信息 -->
+	<!-- Insert into t_role_permission(permission_id,role_id) values(1,1),(2,1) -->
+	<insert id="saveRolePermissionLinks" parameterType="list">
+		insert into t_role_permission(role_id,permission_id)
+		values
+		<foreach collection="list" item="link" separator=",">
+			(#{link.role_id},#{link.permission_id})
+		</foreach>
+	</insert>
+
+	<!-- 清除关联关系 -->
+	<delete id="deleteRolePermissionLinks" parameterType="long">
+		delete from
+		t_role_permission where role_id=#{id}
+	</delete>
+
+	<!-- 查询用户相关的角色 -->
+	<select id="getUserRoles" parameterType="long" resultType="Role">
+		select r.*
+		from t_role r
+		left join t_employee_role er on(r.id = er.role_id)
+		left join t_employee e on(e.id=er.employee_id)
+		where e.id=#{id}
+	</select>
+</mapper> 

@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.CustomerMapper">
+	<cache />
+	<!--查询全部 List<T> getAll(); -->
+	<select id="getAll" resultType="Customer">
+		select * from t_customer
+	</select>
+
+	<!--查询一条 T get(Serializable id); -->
+	<select id="getOne" parameterType="long" resultMap="getOneType">
+		select c.id,
+		c.name,
+		c.contacts,
+		c.age,
+		c.sex,
+		c.tel,
+		c.email,
+		c.qq,
+		c.wechat,
+		c.inputTime,
+		c.status,
+		c.pool,
+		e.id eid,
+		e.realName ename,
+		j.id jid,
+		j.name
+		jname,
+		sl.id slid,
+		sl.name slname,
+		yx.id yxid,
+		yx.realName yxname,
+		so.id
+		soid ,
+		so.name
+		soname ,
+		st.id stid ,
+		st.name stname
+		from t_customer c
+		left
+		join t_employee e on c.inputUser_id=e.id
+		left join
+		t_employee yx on
+		c.seller_id=yx.id
+		left join t_systemdictionaryitem j
+		on c.job_id=j.id
+		left join t_systemdictionaryitem sl on
+		c.salaryLevel_id=sl.id
+		left join
+		t_systemdictionaryitem so on
+		c.customerSource_id=so.id
+		left join
+		t_systemdictionaryitem st on
+		c.customerStatus_id=st.id
+		where c.id=#{id}
+	</select>
+
+	<!--删除 void delete(Serializable id); -->
+	<delete id="delete" parameterType="long">
+		delete from t_customer where
+		id=#{id}
+	</delete>
+
+	<update id="update" parameterType="Customer">
+		update t_customer set
+		name=#{name},
+		contacts=#{contacts},
+		sex=#{sex},
+		age=#{age},
+		email=#{email},
+		tel=#{tel},
+		qq=#{qq},
+		wechat=#{wechat},
+		customerSource_id=#{customerSource.id},
+		customerStatus_id=#{customerStatus.id},
+		seller_id=#{seller.id},
+		status=#{status},
+		pool=#{pool},
+		job_id=#{job.id},
+		salaryLevel_id=#{salaryLevel.id}
+		where id=#{id}
+	</update>
+
+	<insert id="save" parameterType="Customer">
+		insert into
+		t_customer(name,contacts,sex,tel,email,qq,wechat,inputUser_id,customerSource_id,customerStatus_id,seller_id,
+		job_id,salaryLevel_id,inputTime,age,status,pool)
+		values(#{name},#{contacts},#{sex},#{tel},#{email},#{qq},#{wechat},#{inputUser.id},#{customerSource.id},#{customerStatus.id},#{seller.id},
+		#{job.id},#{salaryLevel.id},#{inputTime},#{age},#{status},#{pool})
+	</insert>
+
+
+	<resultMap type="Customer" id="getOneType">
+		<id column="id" property="id" />
+		<result column="name" property="name" />
+		<result column="contacts" property="contacts" />
+		<result column="age" property="age" />
+		<result column="sex" property="sex" />
+		<result column="tel" property="tel" />
+		<result column="email" property="email" />
+		<result column="qq" property="qq" />
+		<result column="wechat" property="wechat" />
+		<result column="inputTime" property="inputTime" />
+		<result column="email" property="email" />
+		<result column="status" property="status" />
+		<result column="pool" property="pool" />
+		<!--录入人 -->
+		<association property="inputUser" javaType="Employee">
+			<id column="eid" property="id" />
+			<result column="ename" property="realName" />
+		</association>
+		<!--营销人员 -->
+		<association property="seller" javaType="Employee">
+			<id column="yxid" property="id" />
+			<result column="yxname" property="realName" />
+		</association>
+		<!--客户来源 -->
+		<association property="customerSource" javaType="SystemDictionaryItem">
+			<id column="soid" property="id" />
+			<result column="soname" property="name" />
+		</association>
+		<!--客户状态 -->
+		<association property="customerStatus" javaType="SystemDictionaryItem">
+			<id column="stid" property="id" />
+			<result column="stname" property="name" />
+		</association>
+		<!--工作 -->
+		<association property="job" javaType="SystemDictionaryItem">
+			<id column="jid" property="id" />
+			<result column="jname" property="name" />
+		</association>
+		<!--收入阶梯 -->
+		<association property="salaryLevel" javaType="SystemDictionaryItem">
+			<id column="slid" property="id" />
+			<result column="slname" property="name" />
+		</association>
+	</resultMap>
+
+	<select id="queryCount" parameterType="CustomerQuery"
+		resultType="long">
+		select count(*) from t_customer c
+		left join t_employee yx on c.seller_id=yx.id
+		<include refid="whereSql" />
+	</select>
+
+	<select id="queryPage" parameterType="CustomerQuery" resultMap="resultMap">
+		select c.id,
+		c.name,
+		c.contacts,
+		c.age,
+		c.sex,
+		c.tel,
+		c.email,
+		c.qq,
+		c.wechat,
+		c.inputTime,
+		c.status,
+		c.pool,
+		e.id eid,
+		e.realName ename,
+		j.id
+		jid,
+		j.name
+		jname,
+		sl.id slid,
+		yx.id yxid,
+		yx.realName yxname,
+		sl.name
+		slname,
+		so.id
+		soid ,
+		so.name soname ,
+		st.id stid ,
+		st.name stname
+		from
+		t_customer c
+		left join t_employee e on c.inputUser_id=e.id
+		left join t_employee yx on c.seller_id=yx.id
+		left join t_systemdictionaryitem j on c.job_id=j.id
+		left join t_systemdictionaryitem sl on c.salaryLevel_id=sl.id
+		left join t_systemdictionaryitem so on c.customerSource_id=so.id
+		left join t_systemdictionaryitem st on c.customerStatus_id=st.id
+		<include refid="whereSql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<sql id="whereSql">
+		<where>
+			<if test="searchKey!=null and searchKey!=''">
+				and (c.name like concat('%',#{searchKey},'%') or c.email
+				like concat('%',#{searchKey},'%') or c.contacts like concat('%',#{searchKey},'%'))
+			</if>
+			<if test="status!=null and status != 0">
+				and c.status=#{status}
+			</if>
+			<if test="sellerName!=null and sellerName != 0">
+				and yx.realName=#{sellerName}
+			</if>
+			<if test="pool!=null and pool != 0">
+				and c.pool=#{pool}
+			</if>
+			<if test="salaryId!=null and salaryId!=''">
+				and c.salaryLevel_id=#{salaryId}
+			</if>
+			<if test="jobId!=null and jobId!=''">
+				and c.job_id=#{jobId}
+			</if>
+			<if test="sourceId!=null and sourceId!=''">
+				and c.customerSource_id=#{sourceId}
+			</if>
+			<if test="pool != 1">
+				<if test="managerRole==false">
+					and c.seller_id = #{currentUserId}
+				</if>
+			</if>
+		</where>
+	</sql>
+
+	<resultMap type="Customer" id="resultMap">
+		<id column="id" property="id" />
+		<result column="name" property="name" />
+		<result column="contacts" property="contacts" />
+		<result column="age" property="age" />
+		<result column="sex" property="sex" />
+		<result column="tel" property="tel" />
+		<result column="email" property="email" />
+		<result column="qq" property="qq" />
+		<result column="wechat" property="wechat" />
+		<result column="inputTime" property="inputTime" />
+		<result column="email" property="email" />
+		<result column="status" property="status" />
+		<result column="pool" property="pool" />
+		<association property="inputUser" javaType="Employee">
+			<id column="eid" property="id" />
+			<result column="ename" property="realName" />
+		</association>
+		<association property="seller" javaType="Employee">
+			<id column="yxid" property="id" />
+			<result column="yxname" property="realName" />
+		</association>
+		<!--客户来源 -->
+		<association property="customerSource" javaType="SystemDictionaryItem">
+			<id column="soid" property="id" />
+			<result column="soname" property="name" />
+		</association>
+		<!--客户来源 -->
+		<association property="customerStatus" javaType="SystemDictionaryItem">
+			<id column="stid" property="id" />
+			<result column="stname" property="name" />
+		</association>
+		<!--工作 -->
+		<association property="job" javaType="SystemDictionaryItem">
+			<id column="jid" property="id" />
+			<result column="jname" property="name" />
+		</association>
+		<association property="salaryLevel" javaType="SystemDictionaryItem">
+			<id column="slid" property="id" />
+			<result column="slname" property="name" />
+		</association>
+	</resultMap>
+
+	<!--客户来源 -->
+	<select id="getCustomerSource" resultType="SystemDictionaryItem">
+		select i.id,i.name
+		from t_systemdictionaryitem i
+		left join t_systemdictionarytype s
+		on
+		i.type_id=s.id
+		where s.sn='customerSource'
+	</select>
+	<!--客户状态 -->
+	<select id="getCustomerStatus" resultType="SystemDictionaryItem">
+		select i.id,i.name
+		from t_systemdictionaryitem i
+		left join t_systemdictionarytype s
+		on
+		i.type_id=s.id
+		where s.sn='customerStatus'
+	</select>
+	<!--客户职业 -->
+	<select id="getCustomerJob" resultType="SystemDictionaryItem">
+		select i.id,i.name from
+		t_systemdictionaryitem i
+		left join t_systemdictionarytype s
+		on
+		i.type_id=s.id
+		where s.sn='customerJob'
+	</select>
+	<!--客户收入阶梯 -->
+	<select id="getCustomerSalaryLevel" resultType="SystemDictionaryItem">
+		select
+		i.id,i.name,i.intro from t_systemdictionaryitem i
+		left join
+		t_systemdictionarytype s
+		on i.type_id=s.id
+		where
+		s.sn='customerSalaryLevel'
+	</select>
+	<!--营销人员 -->
+	<select id="getCustomerSeller" resultType="Employee">
+		select e.*
+		from
+		t_employee e
+		left join t_employee_role er on(er.employee_id = e.id)
+		left join t_role r
+		on(er.role_id = r.id)
+		where sn
+		in('marketManager','marketSpecialist')
+	</select>
+	<select id="getByName" resultType="Customer">
+		select * from t_customer where
+		name=#{name}
+	</select>
+
+</mapper>

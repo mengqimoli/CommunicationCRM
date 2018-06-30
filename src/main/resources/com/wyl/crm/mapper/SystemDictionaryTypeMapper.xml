@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace : 独立的命名空间，可以使Mapper接口的地址（把dao包改为mapper） 例如： 接口地址为com.wyl.crm.mapper.SystemDictionaryMapper 
+	命名空间为com.wyl.crm.mapper.SystemDictionaryMapper（和接口地址相同） 结果：可以不用写Mapper实现，由Spring代理实现 -->
+<mapper namespace="com.wyl.crm.mapper.SystemDictionaryTypeMapper">
+	<select id="createTable">
+		CREATE TABLE IF NOT EXISTS `t_systemdictionarytype` (
+		`id` bigint(20) NOT NULL AUTO_INCREMENT,
+		`name` varchar(255) NOT NULL,
+		`sn` varchar(255) NOT NULL,
+		`intro` varchar(255) DEFAULT NULL,
+		PRIMARY
+		KEY (`id`),
+		UNIQUE KEY `sn` (`sn`)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+	</select>
+
+	<insert id="save" parameterType="SystemDictionaryType"
+		useGeneratedKeys="true">
+		insert into t_systemdictionarytype(name,sn,intro)
+		values(#{name},#{sn},#{intro})
+	</insert>
+
+	<!-- 删 -->
+	<delete id="delete" parameterType="long">
+		delete from
+		t_systemdictionarytype where
+		id=#{id}
+	</delete>
+
+	<update id="update" parameterType="SystemDictionaryType">
+		update t_systemdictionarytype
+		<set>
+			name=#{name},
+			sn=#{sn},
+			intro=#{intro},
+		</set>
+		where
+		id=#{id}
+	</update>
+
+	<select id="getOne" parameterType="long" resultType="SystemDictionaryType">
+		select *
+		from
+		t_systemdictionarytype where id = #{id}
+	</select>
+
+	<select id="getAll" resultType="SystemDictionaryType">
+		select * from
+		t_systemdictionarytype
+	</select>
+
+	<sql id="querySql">
+		<where>
+		</where>
+	</sql>
+
+
+	<!-- 高级查询和分页 -->
+	<select id="queryPage" parameterType="SystemDictionaryTypeQuery"
+		resultType="SystemDictionaryType">
+		select * from t_systemdictionarytype
+		<include refid="querySql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<select id="queryCount" parameterType="SystemDictionaryTypeQuery"
+		resultType="long">
+		select count(id) from t_systemdictionarytype
+		<include refid="querySql" />
+	</select>
+
+</mapper> 

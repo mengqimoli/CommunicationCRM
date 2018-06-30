@@ -1,0 +1,12 @@
+/* 对话框内容标题 */
+.ftitle {
+    border-bottom: 1px solid #ccc;
+    font-size: 17px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    padding: 5px 0;
+}
+
+table td{
+	font-size: 15px;
+}

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.ContractItemMapper">
+	<cache />
+
+	<!--删除 void delete(Serializable id); -->
+	<delete id="delete" parameterType="long">
+		delete from t_contractitem
+		where contract_id=#{id}
+	</delete>
+	
+	<delete id="deleteByContractId" parameterType="long">
+		delete from t_contractitem
+		where id=#{id}
+	</delete>
+
+
+	<update id="update" parameterType="ContractItem">
+		update t_contractitem
+		<set>
+			contract_id=#{contract.id},
+			money=#{money},
+			scale=#{scale},
+			payTime=#{payTime},
+			intro=#{intro},
+			<if test="status!=null and status!=0">
+				status=#{status}
+			</if>
+		</set>
+		where
+		id=#{id}
+	</update>
+
+	<!--添加 void save(T t); -->
+	<insert id="save" parameterType="ContractItem" keyProperty="id"
+		useGeneratedKeys="true">
+		insert into
+		t_contractitem(payTime,money,intro,scale,status,contract_id)
+		values(#{payTime},#{money},#{intro},#{scale},#{status},#{contract.id})
+	</insert>
+
+	<sql id="whereSql">
+		<where>
+			<if test="contractId!=null">
+				item.contract_id=#{contractId}
+			</if>
+			<if test="managerRole==false">
+				and seller.id = #{currentUserId}
+			</if>
+		</where>
+	</sql>
+
+	<!--long getTotalByQuery(BaseQuery query);//根据条件查询总条数 -->
+	<select id="queryCount" parameterType="ContractItemQuery"
+		resultType="long">
+		select count(*) from t_contractitem item
+		left join t_contract con
+		on(item.contract_id = con.id)
+		left join t_employee seller
+		on(con.seller_id=seller.id)
+		<include refid="whereSql" />
+	</select>
+
+	<!-- List<T> getData(BaseQuery query);//根据条件查询数据； -->
+	<select id="queryPage" parameterType="ContractItemQuery"
+		resultMap="contractItemResultMap">
+		select
+
+		item.id,
+		item.money,
+		item.scale,
+		item.payTime,
+		item.intro,
+		item.status,
+
+		con.id conid,
+		con.sn consn,
+
+		seller.id sellerid
+
+		FROM t_contractitem item
+		left join t_contract con on(item.contract_id = con.id)
+		left join t_employee
+		seller on(con.seller_id=seller.id)
+		<include refid="whereSql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<resultMap type="ContractItem" id="contractItemResultMap">
+		<id column="id" property="id" />
+		<result column="money" property="money" />
+		<result column="scale" property="scale" />
+		<result column="payTime" property="payTime" />
+		<result column="intro" property="intro" />
+		<result column="status" property="status" />
+		<association property="contract" javaType="Contract">
+			<id column="conid" property="id" />
+			<result column="consn" property="sn" />
+		</association>
+	</resultMap>
+
+	<!-- public List<ContractItem> getItem(Long id)查询明细的数据 -->
+	<select id="getItem" parameterType="long" resultType="ContractItem">
+		select
+		*
+		from t_contractitem
+		where contract_id=#{id}
+	</select>
+
+</mapper>

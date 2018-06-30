@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.CustomerDevPlanMapper">
+	<cache />
+	<select id="getOne" parameterType="long" resultType="CustomerDevPlan">
+		select * from t_customerdevplan where id=#{id}
+	</select>
+
+	<select id="getAll" resultType="CustomerDevPlan">
+		select * from t_customerdevplan
+	</select>
+
+	<delete id="delete" parameterType="long">
+		delete from t_customerdevplan where id=#{id}
+	</delete>
+	
+	<delete id="deleteByPoteId" parameterType="long">
+		delete from t_customerdevplan 
+		where pote_id=#{id}
+	</delete>
+
+	<update id="update" parameterType="CustomerDevPlan">
+		update t_customerdevplan set
+		planTime=#{planTime},
+		planSubject=#{planSubject},
+		planDetails=#{planDetails},
+		planType_id=#{planType.id},
+		pote_id=#{pote.id},
+		inputUser_id=#{inputUser.id},
+		inputTime=#{inputTime},
+		seller_id=#{seller.id},
+		result=#{result}
+		where id=#{id}
+	</update>
+
+	<insert id="save" parameterType="CustomerDevPlan">
+		insert into
+		t_customerdevplan(planTime,planSubject,planDetails,planType_id,
+		pote_id,inputUser_id,inputTime,seller_id,result)
+		values(#{planTime},#{planSubject},#{planDetails},#{planType.id},#{pote.id},
+		#{inputUser.id},#{inputTime},#{seller.id},#{result})
+	</insert>
+
+	<!-- 公共条件sql -->
+	<sql id="whereSql">
+		<where>
+			<if test="searchKey!=null and searchKey!=''">
+				(p.planSubject like #{searchKey} or p.planDetails like
+				#{searchKey})
+			</if>
+			<if test="planTimeStart!=null and planTimeStart!=''">
+				and p.inputTime >= #{planTimeStart}
+			</if>
+			<if test="planTimeEnd!=null and planTimeEnd!=''">
+				and p.inputTime &lt;= #{planTimeEnd}
+			</if>
+			<if test="planSubject!=null and planSubject!=''">
+				and p.planSubject like concat('%',#{planSubject},'%') 
+			</if>
+			<if test="planDetails!=null and planDetails!=''">
+				and p.planDetails like concat('%',#{planDetails},'%') 
+			</if>
+			
+			<if test="planTypeId!=null and planTypeId!=''">
+				and p.planType_id = #{planTypeId}
+			</if>
+			<if test="poteId!=null and poteId!=''">
+				and c.name like concat('%',#{poteId},'%')
+			</if>
+			<if test="inputUserId !=null and inputUserId!=''">
+				and e.realName like concat('%',#{inputUserId},'%')
+			</if>
+			<if test="managerRole==false">
+				and p.seller_id = #{currentUserId}
+			</if>
+		</where>
+	</sql>
+
+	<select id="queryPage" parameterType="CustomerDevPlanQuery"
+		resultMap="resultMap">
+		select
+		p.id,
+		p.planTime,
+		p.planSubject,
+		p.planDetails,
+		p.inputTime,
+		p.result,
+		
+		c.id cid,
+		c.name cname,
+		c.age cage,
+		c.sex csex,
+		c.linkMan clinkMan,
+		c.linkManTel clinkManTel,
+		
+		e.id eid,
+		e.realName ename,
+		
+		seller.id sellerId,
+		seller.realName sellerRealName,
+		
+		s.id sid,
+		s.name sname 
+		
+		from
+		t_customerdevplan p
+		left join t_potentialcustomer c on p.pote_id=c.id
+		left join t_employee e on p.inputUser_id=e.id
+		left join t_employee seller on p.seller_id=seller.id
+		left join t_systemdictionaryitem s on p.planType_id=s.id
+		<include refid="whereSql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<select id="queryCount" parameterType="CustomerDevPlanQuery"
+		resultType="long">
+		select count(*) from t_customerdevplan p
+		left join t_potentialcustomer c on p.pote_id=c.id
+		left join t_employee e on p.inputUser_id=e.id
+		<include refid="whereSql" />
+	</select>
+
+	<resultMap type="CustomerDevPlan" id="resultMap">
+		<id column="id" property="id" />
+		<result column="planTime" property="planTime" />
+		<result column="planSubject" property="planSubject" />
+		<result column="planDetails" property="planDetails" />
+		<result column="inputTime" property="inputTime" />
+		<result column="result" property="result" />
+		<association property="inputUser" javaType="Employee">
+			<id column="eid" property="id" />
+			<result column="ename" property="realName" />
+		</association>
+		<association property="seller" javaType="Employee">
+			<id column="sellerId" property="id" />
+			<result column="sellerRealName" property="realName" />
+		</association>
+		<association property="pote" javaType="PotentialCustomer">
+			<id column="cid" property="id" />
+			<result column="cname" property="name" />
+			<result column="cage" property="age" />
+			<result column="csex" property="sex" />
+			<result column="clinkMan" property="linkMan" />
+			<result column="clinkManTel" property="linkManTel" />
+		</association>
+		<association property="planType" javaType="SystemDictionaryItem">
+			<id column="sid" property="id" />
+			<result column="sname" property="name" />
+		</association>
+	</resultMap>
+
+	<select id="getPlanType" resultType="SystemDictionaryItem">
+		select i.id,i.name,i.intro
+		from t_systemdictionaryitem i
+		left join t_systemdictionarytype s on i.type_id=s.id
+		where s.sn='planType'
+	</select>
+
+	<select id="getInputUser" resultType="Employee">
+		select e.id,e.realName,e.tel from t_employee e
+	</select>
+</mapper>

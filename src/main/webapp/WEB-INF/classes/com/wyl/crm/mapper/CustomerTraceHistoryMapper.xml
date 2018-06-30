@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.CustomerTraceHistoryMapper">
+	<cache />
+	<select id="getOne" parameterType="long" resultType="CustomerTraceHistory">
+		select *
+		from t_customertracehistory where id=#{id}
+	</select>
+
+	<delete id="delete" parameterType="long">
+		delete from
+		t_customertracehistory where id=#{id}
+	</delete>
+
+	<update id="update" parameterType="CustomerTraceHistory">
+		update t_customertracehistory
+		set
+		customer_id=#{customer.id},
+		seller_id=#{seller.id},
+		traceTime=#{traceTime},
+		traceType_id=#{traceType.id},
+		traceResult=#{traceResult},
+		title=#{title},
+		remark=#{remark}
+		where
+		id=#{id}
+	</update>
+
+	<insert id="save" parameterType="CustomerTraceHistory">
+		insert into
+		t_customertracehistory(customer_id,seller_id,traceTime,traceType_id,
+		traceResult,title,remark)
+		values(#{customer.id},#{seller.id},#{traceTime},#{traceType.id},#{traceResult},
+		#{title},#{remark})
+	</insert>
+
+	<select id="queryCount" parameterType="CustomerTraceHistoryQuery"
+		resultType="long">
+		select count(*) from t_customertracehistory h
+		<include refid="whereSql" />
+	</select>
+
+	<select id="queryPage" parameterType="CustomerTraceHistoryQuery"
+		resultMap="resultMap">
+		select h.id,
+		h.title,
+		h.remark,
+		h.traceResult,
+		h.traceTime,
+		c.id
+		cid,
+		c.name
+		cname,
+		e.id eid,
+		e.realName ename,
+		s.id sid,
+		s.name sname
+		from
+		t_customertracehistory h
+		left join t_customer c on h.customer_id=c.id
+		left join t_employee e on h.seller_id=e.id
+		left join t_systemdictionaryitem s on h.traceType_id=s.id
+		<include refid="whereSql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+	
+	<sql id="whereSql">
+		<where>
+			<if test="managerRole==false">
+				h.seller_id = #{currentUserId}
+			</if>
+		</where>
+	</sql>
+
+	<resultMap type="CustomerTraceHistory" id="resultMap">
+		<id column="id" property="id" />
+		<result column="title" property="title" />
+		<result column="remark" property="remark" />
+		<result column="traceTime" property="traceTime" />
+		<result column="traceResult" property="traceResult" />
+		<association property="seller" javaType="Employee">
+			<id column="eid" property="id" />
+			<result column="ename" property="realName" />
+		</association>
+		<association property="customer" javaType="Customer">
+			<id column="cid" property="id" />
+			<result column="cname" property="name" />
+		</association>
+		<association property="traceType" javaType="SystemDictionaryItem">
+			<id column="sid" property="id" />
+			<result column="sname" property="name" />
+		</association>
+	</resultMap>
+
+	<select id="getCustomerSource" resultType="SystemDictionaryItem">
+		select
+		i.id,i.name,i.intro from t_systemdictionaryitem i
+		left join
+		t_systemdictionarytype s
+		on i.type_id=s.id
+		where s.sn='traceType'
+	</select>
+
+	<!--营销人员 -->
+	<select id="getCustomerSeller" resultType="Employee">
+		select e.*
+		from t_employee e 
+		left join t_employee_role er on(er.employee_id = e.id)
+		left join t_role r on(er.role_id = r.id)
+		where sn in('marketManager','marketSpecialist')
+	</select>
+</mapper>

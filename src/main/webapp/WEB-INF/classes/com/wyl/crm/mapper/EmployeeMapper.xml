@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace : 独立的命名空间，可以使Mapper接口的地址（把dao包改为mapper） 例如： 接口地址为com.wyl.crm.mapper.EmployeeMapper 
+	命名空间为com.wyl.crm.mapper.EmployeeMapper（和接口地址相同） 结果：可以不用写Mapper实现，由Spring代理实现 -->
+<mapper namespace="com.wyl.crm.mapper.EmployeeMapper">
+
+	<!-- 自动建表 -->
+	<select id="createTable">
+		CREATE TABLE IF NOT EXISTS `t_employee` (
+		`id`
+		bigint(20) NOT NULL
+		AUTO_INCREMENT,
+		`username` varchar(20) DEFAULT NULL,
+		`password`
+		varchar(50) DEFAULT NULL,
+		`realName` varchar(30) DEFAULT
+		NULL,
+		`tel`
+		varchar(20) DEFAULT NULL,
+		`email` varchar(40) DEFAULT NULL,
+		`inputTime`
+		date DEFAULT NULL,
+		`status` int(11) DEFAULT NULL,
+		`dept_id`
+		bigint(20)
+		DEFAULT NULL,
+		PRIMARY KEY (`id`),
+		KEY `dept_id` (`dept_id`),
+		CONSTRAINT
+		`t_employee_ibfk_1` FOREIGN KEY (`dept_id`) REFERENCES
+		`t_department`
+		(`id`)
+		) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT
+		CHARSET=utf8;
+	</select>
+
+	<!-- 增 -->
+	<insert id="save" parameterType="Employee" keyProperty="id"
+		useGeneratedKeys="true">
+		insert into
+		t_employee(username,password,realName,tel,email,inputTime,status,dept_id)
+		values(#{username},#{password},#{realName},#{tel},#{email},#{inputTime},#{status},#{dept.id})
+	</insert>
+
+	<!-- 删 -->
+	<delete id="delete" parameterType="long">
+		delete from t_employee where
+		id=#{id}
+	</delete>
+
+	<!-- 改 -->
+	<update id="update" parameterType="Employee">
+		update t_employee
+		<set>
+			username=#{username},
+			password=#{password},
+			realName=#{realName},
+			tel=#{tel},
+			email=#{email},
+			inputTime=#{inputTime},
+			dept_id=#{dept.id},
+			<if test="status!=null and status!=0">
+				status=#{status}
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+	<!-- 查询一个 -->
+	<select id="getOne" parameterType="long" resultType="Employee">
+		select *
+		from
+		t_employee where id = #{id}
+	</select>
+
+	<!-- 查询所有 -->
+	<select id="getAll" resultType="Employee">
+		select * from t_employee
+	</select>
+	<!-- where标签 这个就是添加一个具体的where条件 if标签 后面跟的if条件就是对test里面的条件进行判断，只有当条件满足的时候，才会自动的把后面的条件加上- 
+		但要注意 表达式里面有多个条件需要满足的时候，不能用 && 只能使用 and 当有多个if标签需要拼接的时候，应当在每个if里面的条件前面都加上and 
+		框架会自动的把第一个条件前面的and给去掉 -->
+	<sql id="querySql">
+		<where>
+			<if test="searchKey!=null and searchKey!=''">
+				(username like #{searchKey} or realName like #{searchKey}
+				or tel like #{searchKey} or email like #{searchKey})
+			</if>
+			<if test="status!=null">
+				and e.status=#{status}
+			</if>
+			<if test="inputTimeStart!=null and inputTimeStart!=''">
+				and e.inputTime >= #{inputTimeStart}
+			</if>
+			<if test="inputTimeEnd!=null and inputTimeEnd!=''">
+				and e.inputTime &lt;= #{inputTimeEnd}
+			</if>
+			<if test="username!=null and username!=''">
+				and username like concat('%',#{username},'%')
+			</if>
+			<if test="realName!=null and realName!=''">
+				and realName like concat('%',#{realName},'%')
+			</if>
+			<if test="tel!=null and tel!=''">
+				and tel like concat('%',#{tel},'%')
+			</if>
+			<if test="email!=null and email!=''">
+				and email like concat('%',#{email},'%')
+			</if>
+			<if test="deptId!=null and deptId!=''">
+				and d.id=#{deptId}
+			</if>
+		</where>
+	</sql>
+
+	<!-- 分页集合查询 -->
+	<select id="queryPage" parameterType="EmployeeQuery" resultMap="EmployeeResultMap">
+		select e.*,d.id did,d.name dname
+		<!-- ,r.id rid,r.name rname -->
+		from t_employee e
+		left join
+		t_department d
+		on e.dept_id=d.id
+		<!-- left join t_employee_role er on(e.id = er.employee_id)
+		left join t_role r on(r.id = er.role_id) -->
+		<include refid="querySql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<!-- 根据条件查询总条数,getTotalCount在basemapper里面 -->
+	<select id="queryCount" resultType="long" parameterType="EmployeeQuery">
+		select
+		count(id) from t_employee
+	</select>
+
+	<!-- 封装员工的“级部门” -->
+	<!-- 多对一关系, 更建议嵌套结果 -->
+	<resultMap type="Employee" id="EmployeeResultMap">
+		<!-- 封装简单参数 -->
+		<id column="id" property="id" />
+		<result column="username" property="username" />
+		<result column="password" property="password" />
+		<result column="realName" property="realName" />
+		<result column="tel" property="tel" />
+		<result column="email" property="email" />
+		<result column="inputTime" property="inputTime" />
+		<result column="status" property="status" />
+		<!-- 封装对象:部门对象等 -->
+		<association property="dept" javaType="Department">
+			<!-- 封装部门的数据 -->
+			<id column="did" property="id" />
+			<result column="dname" property="name" />
+		</association>
+		<collection property="roles" ofType="Role"
+			select="com.wyl.crm.mapper.RoleMapper.getUserRoles"
+			column="id">
+		</collection>
+		<!-- 封装对象:角色对象等 
+		<association property="role" javaType="Role">
+			封装部门的数据
+			<id column="rid" property="id" />
+			<result column="rname" property="name" />
+		</association> -->
+	</resultMap>
+
+	<!-- 根据username查询Employee -->
+	<select id="getEmployeeByUsername" parameterType="string"
+		resultType="Employee">
+		select * from t_employee where username = #{username}
+	</select>
+
+	<!-- 批量添加关联信息 -->
+	<!-- Insert into t_permission_role(permission_id,role_id) values(1,1),(2,1) -->
+	<insert id="saveEmployeeRoleLinks" parameterType="list">
+		insert into t_employee_role(employee_id,role_id)
+		values
+		<foreach collection="list" item="link" separator=",">
+			(#{link.employee_id},#{link.role_id})
+		</foreach>
+	</insert>
+
+	<!-- 清除关联关系 -->
+	<delete id="deleteEmployeeRoleLinks" parameterType="long">
+		delete from
+		t_employee_role where employee_id=#{id}
+	</delete>
+</mapper> 

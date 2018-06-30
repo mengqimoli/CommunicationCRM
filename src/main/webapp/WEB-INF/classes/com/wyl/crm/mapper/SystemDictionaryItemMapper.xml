@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace : 独立的命名空间，可以使Mapper接口的地址（把dao包改为mapper） 例如： 接口地址为com.wyl.crm.mapper.SystemDictionaryItemMapper 
+	命名空间为com.wyl.crm.mapper.SystemDictionaryItemMapper（和接口地址相同） 结果：可以不用写Mapper实现，由Spring代理实现 -->
+<mapper namespace="com.wyl.crm.mapper.SystemDictionaryItemMapper">
+	<select id="createTable">
+		CREATE TABLE IF NOT EXISTS `t_systemdictionaryitem` (
+		`id` bigint(20) NOT NULL AUTO_INCREMENT,
+		`type_id` bigint(20) DEFAULT NULL,
+		`name` varchar(255) NOT NULL,
+		`sequence` int(11) DEFAULT NULL,
+		`status` int(11) DEFAULT NULL,
+		`intro` varchar(255) DEFAULT NULL,
+		PRIMARY KEY (`id`),
+		KEY `FKA19398F8B4C06BAA` (`type_id`),
+		CONSTRAINT
+		`t_systemdictionaryitem_ibfk_1` FOREIGN KEY (`type_id`) REFERENCES
+		`t_systemdictionarytype` (`id`)
+		) ENGINE=InnoDB AUTO_INCREMENT=7
+		DEFAULT CHARSET=utf8;
+
+
+	</select>
+
+	<insert id="save" parameterType="SystemDictionaryItem"
+		useGeneratedKeys="true">
+		insert into
+		t_systemdictionaryitem(type_id,name,sequence,status,intro)
+		values(#{type.id},#{name},#{sequence},#{status},#{intro})
+	</insert>
+
+	<delete id="delete" parameterType="long">
+		delete from
+		t_systemdictionaryitem where
+		id=#{id}
+	</delete>
+
+	<update id="update" parameterType="SystemDictionaryItem">
+		update t_systemdictionaryitem
+		<set>
+			name=#{name},
+			sequence=#{sequence},
+			intro=#{intro},
+			type_id=#{type.id},
+			<if test="status!=null and status!=0">
+				status=#{status}
+			</if>
+		</set>
+		where
+		id=#{id}
+	</update>
+
+	<select id="getOne" parameterType="long" resultType="SystemDictionaryItem">
+		select *
+		from
+		t_systemdictionaryitem where id = #{id}
+	</select>
+	
+	<select id="getByName" parameterType="string" resultType="SystemDictionaryItem">
+		select *
+		from
+		t_systemdictionaryitem where name = #{name}
+	</select>
+
+	<select id="getAll" resultType="SystemDictionaryItem">
+		select * from
+		t_systemdictionaryitem 
+	</select>
+
+	<sql id="querySql">
+		<where>
+			<if test="typeId!=null">
+				item.type_id=#{typeId}
+			</if>
+		</where>
+	</sql>
+
+	<!-- 高级查询和分页 -->
+	<select id="queryPage" parameterType="SystemDictionaryItemQuery"
+		resultMap="systemDictionaryItemMap">
+		select item.id,item.name,item.sequence,item.status,item.intro,
+		type.id tid,type.name tname
+		from t_systemdictionaryitem item
+		left join t_systemdictionarytype type on(item.type_id = type.id)
+		<include refid="querySql" />
+		order by item.sequence asc
+		<!-- 查询所有的支持 -->
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+	
+	<resultMap type="SystemDictionaryItem" id="systemDictionaryItemMap">
+		<id column="id" property="id" />
+		<result column="name" property="name" />
+		<result column="sequence" property="sequence" />
+		<result column="status" property="status" />
+		<result column="intro" property="intro" />
+		<collection property="type" ofType="SystemDictionaryType">
+			<id column="tid" property="id" />
+			<result column="tname" property="name" />
+		</collection>
+	</resultMap>
+
+	<select id="queryCount" parameterType="SystemDictionaryItemQuery"
+		resultType="long">
+		select count(id) from t_systemdictionaryitem item
+		<include refid="querySql" />
+	</select>
+	
+	
+</mapper> 

@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.OrderMapper">
+	<cache />
+	<!--查询全部 List<T> getAll(); -->
+	<select id="getAll" resultType="Order">
+		select * from t_order
+	</select>
+
+	<!--查询一条 T get(Serializable id); -->
+	<select id="getOne" parameterType="long" resultType="Order">
+		select *
+		from t_order where id=#{id}
+	</select>
+
+	<!--删除 void delete(Serializable id); -->
+	<delete id="delete" parameterType="long">
+		delete from t_order where
+		id=#{id}
+	</delete>
+
+	<!-- 改 -->
+	<update id="update" parameterType="Order">
+		update t_order
+		<set>
+			sn=#{sn},
+			signTime=#{signTime},
+			sum=#{sum},
+			totalAmount=#{totalAmount},
+			intro=#{intro},
+			customer_id=#{customer.id},
+			seller_id=#{seller.id},
+			deviceType_id=#{deviceType.id},
+			unitType_id=#{unitType.id},
+			<if test="status!=null and status!=0">
+				status=#{status}
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+	<!--添加 void save(T t); -->
+	<insert id="save" parameterType="Order" useGeneratedKeys="true"
+		keyColumn="id" keyProperty="id">
+		<!-- insert into t_order(name)values(#{name}); -->
+		insert into
+		t_order(sn,customer_id,signTime,intro,sum,totalAmount,status,seller_id,deviceType_id,unitType_id)
+		values(#{sn},#{customer.id},#{signTime},#{intro},#{sum},#{totalAmount},#{status},#{seller.id},#{deviceType.id},#{unitType.id})
+	</insert>
+
+	<sql id="whereSql">
+		<where>
+			<if test="searchKey!=null and searchKey !=''">
+				(o.sn like concat("%",#{searchKey},"%") or
+				c.name like
+				concat("%",#{searchKey},"%"))
+			</if>
+			<if test="beginTime != null">
+				and o.signTime >= #{beginTime}
+			</if>
+			<if test="endTime != null">
+				and o.signTime &lt;= #{endTime}
+			</if>
+			<if test="sn !=null and sn!=''">
+				and o.sn = #{sn}
+			</if>
+			<if test="sum !=null and sum!=''">
+				and o.sum =#{sum}
+			</if>
+			<if test="customerId != null">
+				and o.customer_id = #{customerId}
+			</if>
+			<if test="sellerId != null">
+				and o.seller_id = #{sellerId}
+			</if>
+			<if test="managerRole==false">
+				and o.seller_id = #{currentUserId}
+			</if>
+		</where>
+	</sql>
+
+	<!--long getTotalByQuery(BaseQuery query);//根据条件查询总条数 -->
+	<select id="queryCount" parameterType="OrderQuery" resultType="long">
+		select count(*) from t_order o
+		left join t_customer c on
+		o.customer_id=c.id
+		<include refid="whereSql" />
+	</select>
+
+	<!-- List<T> getData(BaseQuery query);//根据条件查询数据； -->
+	<select id="queryPage" parameterType="OrderQuery" resultMap="orderResultMap">
+		select
+		o.id,
+		o.sn,
+		o.signTime,
+		o.sum,
+		o.totalAmount,
+		o.intro,
+		o.status,
+
+		c.id
+		cid,
+		c.name cname,
+
+		e.id eId,
+		e.realName eName,
+
+		deviceType.id deviceTypeId,
+		deviceType.name deviceTypeName,
+
+		unitType.id unitTypeId,
+		unitType.name
+		unitTypeName
+
+		from t_order o
+
+		left join t_employee e on o.seller_id=e.id
+		left join t_customer c on o.customer_id=c.id
+		left join t_systemdictionaryitem deviceType on o.deviceType_id=deviceType.id
+		left join t_systemdictionaryitem unitType on o.unitType_id=unitType.id
+		<include refid="whereSql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<resultMap type="Order" id="orderResultMap">
+		<id column="id" property="id" />
+		<result column="sn" property="sn" />
+		<result column="signTime" property="signTime" />
+		<result column="sum" property="sum" />
+		<result column="totalAmount" property="totalAmount" />
+		<result column="intro" property="intro" />
+		<result column="status" property="status" />
+
+		<association property="customer" javaType="Customer">
+			<id column="cid" property="id" />
+			<result column="cname" property="name" />
+		</association>
+
+		<association property="seller" javaType="Employee">
+			<id column="eId" property="id" />
+			<result column="eName" property="realName" />
+		</association>
+
+		<!--设备类型 -->
+		<association property="deviceType" javaType="SystemDictionaryItem">
+			<id column="deviceTypeId" property="id" />
+			<result column="deviceTypeName" property="name" />
+		</association>
+
+		<!--设备型号 -->
+		<association property="unitType" javaType="SystemDictionaryItem">
+			<id column="unitTypeId" property="id" />
+			<result column="unitTypeName" property="name" />
+		</association>
+	</resultMap>
+
+	<!-- PageList<Order> getAllSeller(); -->
+	<select id="getAllSeller" resultType="Employee">
+		select
+		e.id,
+		e.realName
+		from
+		t_employee e
+		left join t_employee_role er on(e.id=er.employee_id)
+		left
+		join t_role r on(er.role_id=r.id)
+		where r.sn
+		in('marketSpecialist','marketManager')
+	</select>
+
+	<!--设备类型 -->
+	<select id="getDeviceType" resultType="SystemDictionaryItem">
+		select i.id,i.name
+		from
+		t_systemdictionaryitem i
+		left join t_systemdictionarytype s
+		on
+		i.type_id=s.id
+		where s.sn='deviceType'
+	</select>
+
+	<!--设备型号 -->
+	<select id="getUnitType" resultType="SystemDictionaryItem">
+		select i.id,i.name
+		from
+		t_systemdictionaryitem i
+		left join t_systemdictionarytype s
+		on
+		i.type_id=s.id
+		where s.sn='unitType'
+	</select>
+</mapper>

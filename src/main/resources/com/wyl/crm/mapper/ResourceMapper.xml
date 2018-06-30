@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.ResourceMapper">
+	<!-- 建表 -->
+	<select id="createTable">
+		CREATE TABLE IF NOT EXISTS `t_resource` (
+		`id`
+		bigint(20) NOT NULL AUTO_INCREMENT,
+		`name` varchar(30) DEFAULT NULL,
+		`url` varchar(100) DEFAULT NULL,
+		`controller` varchar(100) DEFAULT
+		NULL,
+		PRIMARY KEY (`id`)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+	</select>
+
+	<!-- 添删改 -->
+	<insert id="save" parameterType="Resource">
+		insert into
+		t_resource(name,url,controller)
+		values(#{name},#{url},#{controller})
+
+	</insert>
+
+	<delete id="delete" parameterType="long">
+		delete from t_resource where
+		id=#{id}
+	</delete>
+
+	<update id="update" parameterType="Resource">
+		update t_resource
+		<set>
+			name=#{name},
+			url=#{url},
+			controller=#{controller},
+		</set>
+		where
+		id=#{id}
+	</update>
+
+	<!-- 普通查询 -->
+	<select id="getOne" parameterType="long" resultType="Resource">
+		select *
+		from t_resource where id = #{id}
+	</select>
+
+	<select id="getByUrl" parameterType="string" resultType="Resource">
+		select *
+		from t_resource where url = #{url}
+	</select>
+
+	<select id="getAll" resultType="Resource">
+		select * from t_resource
+	</select>
+
+	<!-- 高级查询 -->
+	<sql id="querySql">
+		<where>
+			<if test="controller!=null and controller!=''">
+				controller=#{controller}
+			</if>
+		</where>
+	</sql>
+	<!-- 高级查询和分页 -->
+	<select id="queryPage" parameterType="ResourceQuery" resultType="Resource">
+		select * from t_resource
+		<include refid="querySql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<select id="queryCount" parameterType="ResourceQuery"
+		resultType="long">
+		select count(id) from t_resource
+		<include refid="querySql" />
+	</select>
+
+</mapper> 

@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace : 独立的命名空间，可以使Mapper接口的地址（把dao包改为mapper） 例如： 接口地址为com.wyl.crm.mapper.EmployeeMapper 
+	命名空间为com.wyl.crm.mapper.EmployeeMapper（和接口地址相同） 结果：可以不用写Mapper实现，由Spring代理实现 -->
+<mapper namespace="com.wyl.crm.mapper.DepartmentMapper">
+
+	<!-- 建表语句 -->
+	<update id="createTable">
+		CREATE TABLE IF NOT EXISTS `t_department` (
+		`id`
+		bigint(20) NOT NULL AUTO_INCREMENT,
+		`sn` varchar(255) DEFAULT NULL,
+		`name` varchar(255) DEFAULT NULL,
+		`dirPath` varchar(255) DEFAULT NULL,
+		`status` int(11) DEFAULT NULL,
+		`manager_id` bigint(20) DEFAULT NULL,
+		`parent_id` bigint(20) DEFAULT NULL,
+		PRIMARY KEY (`id`),
+		KEY
+		`manager_id` (`manager_id`),
+		KEY `parent_id` (`parent_id`),
+		CONSTRAINT
+		`t_department_ibfk_1` FOREIGN KEY (`manager_id`) REFERENCES
+		`t_employee` (`id`),
+		CONSTRAINT `t_department_ibfk_2` FOREIGN KEY
+		(`parent_id`) REFERENCES
+		`t_department` (`id`)
+		) ENGINE=InnoDB
+		AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
+	</update>
+
+	<insert id="save" parameterType="Department">
+		insert into
+		t_department(sn,name,dirPath,status,manager_id,parent_id)
+		values(#{sn},#{name},#{dirPath},#{status},#{manager.id},#{parent.id})
+	</insert>
+
+	<delete id="delete" parameterType="long">
+		delete from t_department where
+		id=#{id}
+	</delete>
+
+	<update id="update" parameterType="Department">
+		update t_department
+		<set>
+			sn=#{sn},
+			name=#{name},
+			dirPath=#{dirPath},
+			manager_id=#{manager.id},
+			parent_id=#{parent.id},
+			<if test="status!=null and status!=0">
+				status=#{status}
+			</if>
+		</set>
+		where
+		id=#{id}
+	</update>
+
+	<select id="getOne" parameterType="long" resultMap="DepartmentResultMap">
+		select dept.*
+		, manager.id mid, manager.realName mname
+		, parent.id pid, parent.name
+		pname
+		from t_department dept
+		left join t_employee manager
+		on(dept.manager_id=manager.id)
+		left join t_department parent
+		on(dept.parent_id=parent.id)
+		where dept.id=#{id}
+	</select>
+
+	<select id="getAll" resultMap="DepartmentResultMap">
+		select dept.*, manager.id
+		mid,manager.realName mname,parent.id pid, parent.name pname
+		from
+		t_department dept
+		left join t_employee manager
+		on(dept.manager_id=manager.id)
+		left join t_department parent
+		on(dept.parent_id=parent.id)
+	</select>
+
+	<!-- 封装部门的“经理”和“上级部门” -->
+	<!-- 多对一关系, 更建议嵌套结果 -->
+	<resultMap type="Department" id="DepartmentResultMap">
+		<id column="id" property="id" />
+		<result column="sn" property="sn" />
+		<result column="name" property="name" />
+		<result column="dirPath" property="dirPath" />
+		<result column="status" property="status" />
+		<!-- 部门经理 -->
+		<association property="manager" javaType="Employee">
+			<id column="mid" property="id" />
+			<result column="mname" property="realName" />
+		</association>
+		<!-- 上级部门 -->
+		<association property="parent" javaType="Department">
+			<id column="pid" property="id" />
+			<result column="pname" property="name" />
+		</association>
+	</resultMap>
+
+	<select id="getDepartmentTree" resultMap="DepartmentResultMapWithChildren">
+		select
+		parent.id,parent.name
+		,child.id cid,child.name cname
+		from t_department
+		parent
+		left join t_department
+		child on(parent.id=child.parent_id)
+		where
+		parent.parent_id is null
+	</select>
+
+	<resultMap type="Department" id="DepartmentResultMapWithChildren">
+		<id column="id" property="id" />
+		<result column="name" property="name" />
+		<!-- 子部门 -->
+		<collection property="children" ofType="Department">
+			<id column="cid" property="id" />
+			<result column="cname" property="name" />
+		</collection>
+	</resultMap>
+
+	<!-- 公共条件sql -->
+	<sql id="whereSql">
+		<where>
+			<if test="sn!=null and sn!=''">
+				dept.sn like concat(#{sn},'%')
+			</if>
+			<if test="name!=null and name!=''">
+				and dept.name like concat('%',#{name},'%')
+			</if>
+			<if test="managerName!=null and managerName!=''">
+				and manager.realName like concat('%',#{managerName},'%')
+			</if>
+			<if test="parentId!=null">
+				and dept.parent_id=#{parentId}
+			</if>
+			<if test="searchKey!=null and searchKey!=''">
+				and (dept.name like #{searchKey} or dept.sn like
+				#{searchKey}
+				or dept.dirPath like #{searchKey})
+			</if>
+			<if test="status!=null and status!=''">
+				and dept.status = #{status}
+			</if>
+		</where>
+	</sql>
+
+	<!-- 集合查询 -->
+	<select id="queryPage" parameterType="DepartmentQuery"
+		resultMap="DepartmentResultMap">
+		select dept.*
+		, manager.id mid, manager.realName mname
+		, parent.id pid,
+		parent.name pname
+		from t_department dept
+		left join t_employee manager
+		on(dept.manager_id=manager.id)
+		left join t_department parent
+		on(dept.parent_id=parent.id)
+		<include refid="whereSql" />
+		<!-- 查询所有的支持 -->
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<!-- 获取分页查询总数 -->
+	<select id="queryCount" parameterType="DepartmentQuery"
+		resultType="long">
+		select count(dept.id)
+		from t_department dept
+		left join t_employee
+		manager
+		on(dept.manager_id=manager.id)
+		<include refid="whereSql" />
+	</select>
+</mapper> 

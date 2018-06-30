@@ -1,0 +1,37 @@
+// 扩展jquery组件，增加一个可以直接把form表单字段信息，封装到一个json
+$.fn.serializeJson=function(){
+	var paramArr = $(this).serializeArray();
+	
+	// 把表单数据封装成json对象结构
+	var paramObj = {};
+	$.each(paramArr,function(index,obj){
+		//console.debug(arguments);
+		paramObj[obj.name] = obj.value;
+	});
+	
+	return paramObj;
+}
+
+
+// 公共的列的格式化函数
+// || ：js中，返回从左到右的第一个有效值
+function objectFormatter(v, r, i){
+	return v?v.name||v.nickname||v.title||v.text:'';
+}
+
+
+
+function genderFormatter(v,r,i){
+	switch (v) {
+	case 0:
+		return '男';
+		break;
+	case 1:
+		return '女';
+		break;
+
+	default:
+		return '未知';
+		break;
+	}
+}

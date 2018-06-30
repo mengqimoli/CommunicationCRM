@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.CustomerTransferMapper">
+	<cache />
+	<select id="getOne" parameterType="long" resultType="CustomerTransfer">
+		select *
+		from t_customertransfer where id=#{id}
+	</select>
+
+	<delete id="delete" parameterType="long">
+		delete from t_customertransfer
+		where id=#{id}
+	</delete>
+
+	<insert id="save" parameterType="CustomerTransfer">
+		insert into
+		t_customertransfer(customer_id,transUser_id,transTime,oldSeller_id,
+		newSeller_id,transReason)
+		values(#{customer.id},#{transUser.id},#{transTime},#{oldSeller.id},#{newSeller.id},
+		#{transReason})
+	</insert>
+
+	<select id="queryCount" parameterType="CustomerTransferQuery" resultType="long">
+		select count(*) from t_customertransfer f
+		<include refid="whereSql" />
+	</select>
+
+	<select id="queryPage" parameterType="CustomerTransferQuery" resultMap="resultMap">
+		select f.id,
+		f.transTime,
+		f.transReason,
+		c.id cid,
+		c.name cname,
+		t.id tid,
+		t.realName tname,
+		o.id oid,
+		o.realName oname,
+		n.id nid,
+		n.realName nname from t_customertransfer f
+		left join t_customer c
+		on
+		f.customer_id=c.id
+		left join t_employee t
+		on f.transUser_id=t.id
+		left
+		join t_employee o
+		on f.oldSeller_id=o.id
+		left join t_employee n
+		on
+		f.newSeller_id=n.id
+		<include refid="whereSql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+	
+	<sql id="whereSql">
+		<where>
+			<if test="managerRole==false">
+				(f.oldSeller_id = #{currentUserId} or f.newSeller_id = #{currentUserId})
+			</if>
+		</where>
+	</sql>
+
+	<resultMap type="CustomerTransfer" id="resultMap">
+		<id column="id" property="id" />
+		<result column="transTime" property="transTime" />
+		<result column="transReason" property="transReason" />
+		<association property="oldSeller" javaType="Employee">
+			<id column="oid" property="id" />
+			<result column="oname" property="realName" />
+		</association>
+		<association property="transUser" javaType="Employee">
+			<id column="tid" property="id" />
+			<result column="tname" property="realName" />
+		</association>
+		<association property="newSeller" javaType="Employee">
+			<id column="nid" property="id" />
+			<result column="nname" property="realName" />
+		</association>
+		<association property="customer" javaType="Customer">
+			<id column="cid" property="id" />
+			<result column="cname" property="name" />
+		</association>
+	</resultMap>
+
+	<select id="getEmployee" resultType="Employee">
+		select e.id,e.realName
+		,e.tel from t_employee e
+	</select>
+
+</mapper>

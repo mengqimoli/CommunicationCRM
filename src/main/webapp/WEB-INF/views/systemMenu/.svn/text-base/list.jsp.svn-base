@@ -1,0 +1,259 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>系统菜单管理</title>
+<!-- 1.引入外部资源 -->
+<%@ include file="/WEB-INF/views/common.jsp"%>
+<!-- 2.声明页面常用的组件 -->
+<!-- 3.在页面加载完毕后,缓存这些组件 -->
+<!-- 4.声明一个"命令管理对象",声明需要提供的函数支持 -->
+<!-- 5.初始化页面组件 -->
+<script type="text/javascript">
+	$(function() {
+		// 2.声明页面常用的组件 
+		var systemMenuGrid, systemMenuDlg, systemMenuForm, systemMenuTree, systemMenuParentTreeCombo,systemMenuPermissionCombo;
+		// 3.在页面加载完毕后,缓存这些组件 
+		systemMenuGrid = $("#systemMenuGrid");
+		systemMenuDlg = $("#systemMenuDlg");
+		systemMenuForm = $("#systemMenuForm");
+		systemMenuTree = $("#systemMenuTree");
+		systemMenuParentTreeCombo  = $("#systemMenuParentTreeCombo");
+		systemMenuPermissionCombo  = $("#systemMenuPermissionCombo");
+		
+		// 4.声明一个"命令管理对象",声明需要提供的函数支持 
+		var cmdObj = {
+			create : function() {
+				//console.debug("create..");
+				// 清空表单,不能使用以下方法
+				systemMenuForm.form("clear");
+				// 打开面板
+				systemMenuDlg.dialog("open");
+
+			},
+			edit : function() {
+				//console.debug("edit..");
+				// 获取选中数据
+				var rowData = systemMenuGrid.datagrid("getSelected");
+				if (!rowData) {
+					$.messager.alert("温馨提示", "请选中一行数据!!", "info");
+					return;
+				}
+				// 清空表单
+				systemMenuForm.form("clear");
+				// 打开面板
+				systemMenuDlg.dialog("open");
+				// 数据加载处理
+				if(rowData.parent)
+					rowData['parent.id'] = rowData.parent.id;
+				if(rowData.permission)
+					rowData['permission.id'] = rowData.permission.id;
+				// 加载数据
+				systemMenuForm.form("load", rowData);
+			},
+			del : function() {
+				console.debug("del..");
+			},
+			refresh : function() {
+				//console.debug("refresh..");
+				systemMenuGrid.datagrid("reload");
+			},
+			save : function() {
+				systemMenuForm.submit();
+			},
+			cancel : function() {
+				systemMenuDlg.dialog("close");
+			}
+		};
+
+		//5. 初始化组件
+		//new Ext.grid({
+		systemMenuGrid.datagrid({
+			title : "系统菜单信息管理",
+			fit : true,
+			border : false,
+			url : "systemMenu_list",
+			toolbar : [ {
+				text : "添加",
+				iconCls : "icon-add",
+				handler : cmdObj['create']
+			}, {
+				text : "编辑",
+				iconCls : "icon-edit",
+				handler : cmdObj['edit']
+			}, {
+				text : "删除 ",
+				iconCls : "icon-remove",
+				handler : cmdObj['del']
+			}, {
+				text : "刷新",
+				iconCls : "icon-reload",
+				handler : cmdObj['refresh']
+			} ],
+			rownumbers : false,
+			pagination : true,
+			pageNumber : "1",
+			pageSize : "10",
+			pageList : [ 2, 5, 10, 20, 50 ],
+			fitColumns : true,
+			singleSelect : true,
+			columns : [ [ {
+				field : 'sn',
+				title : '系统菜单编号',
+				width : 100
+			}, {
+				field : 'name',
+				title : '系统菜单名称',
+				width : 100
+			}, {
+				field : 'parent',
+				title : '上级菜单名称',
+				formatter : objectFormatter,
+				width : 110
+			}, {
+				field : 'permission',
+				title : '关联权限',
+				formatter : objectFormatter,
+				width : 110
+			}
+			
+			] ]
+
+		});
+
+		systemMenuDlg.dialog({
+			width : 320,
+			height : 260,
+			title : "添加/编辑系统菜单面板",
+			modal : true,
+			closed : true,
+			buttons : [ {
+				text : "保存",
+				iconCls : "icon-save",
+				handler : cmdObj['save']
+			}, {
+				text : "取消",
+				iconCls : "icon-cancel",
+				handler : cmdObj['cancel']
+			}, ]
+
+		});
+
+		systemMenuForm.form({
+			url : "systemMenu_save.action",
+			success : function(data) {
+				var rs = $.parseJSON(data);
+				if (rs.success) {
+					// 隐藏对话框
+					systemMenuDlg.dialog("close");
+					// 成功提示
+					$.messager.alert("温馨提示", rs.message, "info", function() {
+						// 刷新表格
+						systemMenuGrid.datagrid("load");
+						systemMenuTree.tree("reload");
+						systemMenuParentTreeCombo.combotree("reload");
+					});
+				} else {
+					$.messager.alert("温馨提示", "数据保存失败!!<br/>" + rs.message,
+							"info", function() {
+								// 错误数据定位
+							});
+				}
+			}
+		});
+
+		//初始化组件
+		systemMenuParentTreeCombo.combotree({
+			url : "systemMenu_getTreeData"
+		});
+
+		systemMenuTree.tree({
+			url : "systemMenu_getTreeData",
+			onClick : function(node) {
+				// 获取node上的id
+				var pid = node.id;
+				var text = node.text;
+				//var dirPath = node.attributes;
+				// 把id作为过滤条件,去加载表格数据
+				systemMenuGrid.datagrid("load", {
+					"parentId" : pid
+				});
+
+				// 在表格上缓存,当前查看的父部分信息
+				//systemMenuGrid.parent = {"id":pid,"text":text};
+			}
+		});
+
+		systemMenuPermissionCombo.combogrid({
+			panelWidth:430,
+			url: 'permission_list',
+			idField:'id',
+			textField:'name',
+			
+			mode:'remote',// 重点，远程数据加载
+			
+			fitColumns:true,
+			pagination : true,
+			columns:[[
+			{field:'id',title:'编号',width:2},
+			{field:'name',title:'权限名称',width:3},
+			{field:'resource',title:'资源地址',width:12}
+			]]
+		});
+	});
+</script>
+</head>
+<body>
+	<div class="easyui-layout" fit="true" border="false">
+		<div data-options="region:'west',width:150" title="系统菜单树"
+			headerCls="border-right-none" bodyCls="border-right-none">
+			<ul id="systemMenuTree"></ul>
+		</div>
+		<div data-options="region:'center'">
+			<!-- 1. 数据表格 -->
+			<table id="systemMenuGrid"></table>
+			<!-- 2. 添加/编辑对话框 -->
+			<div id="systemMenuDlg">
+				<form id="systemMenuForm" method="post">
+					<input type="hidden" name="id">
+					<table style="margin-top: 10px;" align="center">
+						<tr>
+							<td>菜单编号:</td>
+							<td><input name="sn" class="easyui-validatebox"
+								required="true">&emsp;</td>
+						</tr>
+						<tr>
+							<td>菜单名称:</td>
+							<td><input name="name" class="easyui-validatebox"
+								required="true"></td>
+						</tr>
+						<tr>
+							<td>菜单图标:</td>
+							<td><input name="iconCls" 
+								></td>
+						</tr>
+						<tr>
+							<td>菜单地址:</td>
+							<td><input name="url" 
+								></td>
+						</tr>
+						<tr>
+							<td>上级菜单:</td>
+							<td><input name="parent.id" id="systemMenuParentTreeCombo"
+								class="easyui-combotree" style="width: 150px;"></td>
+						</tr>
+						<tr>
+							<td>菜单权限:</td>
+							<td>
+							    <input name="permission.id" id="systemMenuPermissionCombo">
+							</td>
+						</tr>
+					</table>
+				</form>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

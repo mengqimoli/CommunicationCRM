@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wyl.crm.mapper.PotentialCustomerMapper">
+	<select id="getAll" resultType="PotentialCustomer">
+		select * from t_potentialcustomer
+	</select>
+	
+	<select id="getByPoteName" resultType="PotentialCustomer">
+		select * from t_potentialcustomer where name=#{name}
+	</select>
+
+	<select id="getOne" parameterType="long" resultMap="resultMap">
+		select
+		p.id,p.*,
+		
+		e.id eId,
+		e.realName,
+		
+		seller.id sellerId,
+		seller.realName sellerRealName,
+		
+		s.id sId,
+		s.name sName
+		
+		from
+		t_potentialcustomer p
+		left join t_employee e on p.inputUser_id=e.id
+		left join t_employee seller on p.seller_id=seller.id
+		left join t_systemdictionaryitem s on p.customerSource_id=s.id
+		where
+		p.id=#{id}
+	</select>
+
+	<delete id="delete" parameterType="long">
+		delete from
+		t_potentialcustomer where id=#{id}
+	</delete>
+	
+	<delete id="deleteByName" parameterType="string">
+		delete from
+		t_potentialcustomer where name=#{name}
+	</delete>
+
+	<update id="update" parameterType="PotentialCustomer">
+		update t_potentialcustomer set
+		successRate=#{successRate},
+		name=#{name},
+		age=#{age},
+		sex=#{sex},
+		intro=#{intro},
+		linkMan=#{linkMan},
+		linkManTel=#{linkManTel},
+		inputUser_id=#{inputUser.id},
+		inputTime=#{inputTime},
+		customerSource_id=#{customerSource.id},
+		seller_id=#{seller.id},
+		<if test="status!=null and status!=0">
+			status=#{status}
+		</if>
+		where
+		id=#{id}
+	</update>
+
+	<insert id="save" parameterType="PotentialCustomer" keyProperty="id"
+		useGeneratedKeys="true">
+		insert into
+		t_potentialcustomer(successRate,name,age,sex,intro,linkMan,linkManTel,inputUser_id,
+		inputTime,customerSource_id,seller_id,status)
+		values(#{successRate},#{name},#{age},#{sex},#{intro},#{linkMan},#{linkManTel},
+		#{inputUser.id},#{inputTime},#{customerSource.id},#{seller.id},#{status})
+	</insert>
+
+	<!-- 公共条件sql -->
+	<sql id="whereSql">
+		<where>
+			<if test="managerRole==false">
+				and p.seller_id = #{currentUserId}
+			</if>
+		</where>
+	</sql>
+
+	<select id="queryPage" parameterType="PotentialCustomerQuery"
+		resultMap="resultMap">
+		select
+		p.id,
+		p.name,
+		p.successRate,
+		p.age,
+		p.sex,
+		p.intro,
+		p.linkMan,
+		p.linkManTel,
+		p.inputTime,
+		p.status,
+		e.id eId,
+		e.realName,
+		s.id sId,
+		s.name sName,
+		seller.id sellerId,
+		seller.realName sellerRealName
+		from
+		t_potentialcustomer p
+		left join t_employee e on p.inputUser_id=e.id
+		left join t_employee seller on p.seller_id=seller.id
+		left join
+		t_systemdictionaryitem s on p.customerSource_id=s.id
+		<include refid="whereSql" />
+		<!-- 查询所有的支持 -->
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<select id="queryCount" parameterType="PotentialCustomerQuery"
+		resultType="long">
+		select count(*) from t_potentialcustomer p
+		<include refid="whereSql" />
+	</select>
+
+	<resultMap type="PotentialCustomer" id="resultMap">
+		<id column="id" property="id" />
+		<result column="name" property="name" />
+		<result column="age" property="age" />
+		<result column="sex" property="sex" />
+		<result column="successRate" property="successRate" />
+		<result column="intro" property="intro" />
+		<result column="linkMan" property="linkMan" />
+		<result column="linkManTel" property="linkManTel" />
+		<result column="inputTime" property="inputTime" />
+		<result column="status" property="status" />
+		<!-- 录入人 -->
+		<association property="inputUser" javaType="Employee">
+			<id column="eId" property="id" />
+			<result column="realName" property="realName" />
+		</association>
+		<!-- 营销人员 -->
+		<association property="seller" javaType="Employee">
+			<id column="sellerId" property="id" />
+			<result column="sellerRealName" property="realName" />
+		</association>
+		<!-- 客户来源 -->
+		<association property="customerSource" javaType="SystemDictionaryItem">
+			<id column="sId" property="id" />
+			<result column="sName" property="name" />
+		</association>
+	</resultMap>
+
+	<select id="getCustomerSource" resultType="SystemDictionaryItem">
+		select i.id,i.name
+		from t_systemdictionaryitem i
+		left join t_systemdictionarytype s
+		on
+		i.type_id=s.id
+		where s.sn='customerSource'
+	</select>
+
+	<insert id="importPotentialCustomers" parameterType="list">
+		insert into
+		t_potentialcustomer(successRate,name,age,sex,intro,linkMan,linkManTel,inputUser_id,
+		inputTime,customerSource_id,status)values
+		<foreach collection="list" item="item" separator=",">
+			(#{item.successRate},#{item.name},#{item.age},#{item.sex},#{item.intro},#{item.linkMan},#{item.linkManTel},
+			#{item.inputUser.id},#{item.inputTime},#{item.customerSource.id},#{item.status})
+		</foreach>
+	</insert>
+</mapper>

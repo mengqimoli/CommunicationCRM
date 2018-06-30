@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.PermissionMapper">
+	<!-- 建表 -->
+	<select id="createTable">
+		CREATE TABLE IF NOT EXISTS `t_permission` (
+		`id`
+		bigint(20) NOT NULL AUTO_INCREMENT,
+		`name` varchar(30) DEFAULT NULL,
+		`resource` varchar(255) DEFAULT NULL,
+		PRIMARY KEY (`id`)
+		) ENGINE=InnoDB
+		DEFAULT CHARSET=utf8;
+	</select>
+
+	<!-- 添删改 -->
+	<insert id="save" parameterType="Permission" keyProperty="id"
+		useGeneratedKeys="true">
+		insert into
+		t_permission(name,sn,resource,status,menu_id)
+		values(#{name},#{sn},#{resource},#{status},#{menu.id})
+
+	</insert>
+
+	<delete id="delete" parameterType="long">
+		delete from t_permission where
+		id=#{id}
+	</delete>
+
+	<update id="update" parameterType="Permission">
+		update t_permission
+		<set>
+			name=#{name},
+			sn=#{sn},
+			resource=#{resource},
+			menu_id=#{menu.id},
+			<if test="status!=null and status!=0">
+				status=#{status}
+			</if>
+		</set>
+		where
+		id=#{id}
+	</update>
+
+	<!-- 普通查询 -->
+	<select id="getOne" parameterType="long" resultType="Permission">
+		select *
+		from
+		t_permission where id = #{id}
+	</select>
+
+	<select id="getPermissionByResourceName" parameterType="string"
+		resultType="Permission">
+		select * from t_permission where resource = #{resource}
+	</select>
+
+	<select id="getPermissionByPermissionName" parameterType="string"
+		resultType="Permission">
+		select * from t_permission where name = #{name}
+	</select>
+
+	<select id="getAll" resultType="Permission">
+		select * from t_permission
+	</select>
+
+	<!-- 高级查询 -->
+	<sql id="querySql">
+		<where>
+			<if test="searchKey!=null and searchKey!=''">
+				(p.name like #{searchKey} or p.sn like #{searchKey}
+				or
+				p.resource like #{searchKey})
+			</if>
+			<if test="permissionModelType!=null and permissionModelType!=''">
+				and p.resource like concat('%',#{permissionModelType},'%')
+			</if>
+			<if test="status!=null and status!=''">
+				and p.status = #{status}
+			</if>
+			<if test="sn!=null and sn!=''">
+				and p.sn like concat('%',#{sn},'%')
+			</if>
+			<if test="name!=null and name!=''">
+				and p.name like concat('%',#{name},'%')
+			</if>
+			<if test="resource!=null and resource!=''">
+				and p.resource like concat('%',#{resource},'%')
+			</if>
+			<if test="menuId!=null">
+				and p.menu_id=#{menuId}
+			</if>
+		</where>
+	</sql>
+	<!-- 高级查询和分页 -->
+	<select id="queryPage" parameterType="PermissionQuery"
+		resultMap="PermissionMap">
+		select p.id,p.name,p.sn,p.resource,p.status,m.id mid,m.name mname
+		FROM
+		t_permission p
+		left join t_systemmenu m on p.menu_id = m.id
+		<include refid="querySql" />
+		order by p.resource asc
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<resultMap type="Permission" id="PermissionMap">
+		<id column="id" property="id" />
+		<result column="name" property="name" />
+		<result column="sn" property="sn" />
+		<result column="resource" property="resource" />
+		<result column="status" property="status" />
+		<association property="menu" javaType="SystemMenu">
+			<id column="mid" property="id" />
+			<result column="mname" property="name" />
+		</association>
+	</resultMap>
+
+	<select id="queryCount" parameterType="PermissionQuery"
+		resultType="long">
+		select count(id) from t_permission p
+		<include refid="querySql" />
+	</select>
+
+
+	<!-- 查询角色相关的权限 -->
+	<select id="getRolePermissions" parameterType="long" resultMap="PermissionMap">
+		select p.id,p.name,p.sn,p.resource,p.status,m.id mid,m.name mname
+		from
+		t_permission p
+		left join t_systemmenu m on (p.menu_id = m.id)
+		left join
+		t_role_permission rp on(p.id = rp.permission_id)
+		left join t_role r
+		on(r.id=rp.role_id)
+		where
+		r.id=#{id}
+	</select>
+
+	<!-- 查询用户相关的权限 -->
+	<select id="getUserPermissions" parameterType="long" resultMap="PermissionMap">
+		select p.id,p.name,p.sn,p.resource,p.status,m.id mid,m.name mname
+		from t_permission p
+		left join t_systemmenu m on (p.menu_id = m.id)
+		left join t_role_permission rp on(p.id=rp.permission_id)
+		left join t_role r on(r.id=rp.role_id)
+		left join t_employee_role er on(er.role_id=r.id)
+		left join t_employee emp on(emp.id=er.employee_id)
+		where emp.id=#{id}
+	</select>
+
+</mapper> 

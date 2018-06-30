@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.wyl.crm.mapper.GuaranteeItemMapper">
+	<cache />
+
+	<!--删除 void delete(Serializable id); -->
+	<delete id="delete" parameterType="long">
+		delete from t_guaranteeitem
+		where id=#{id}
+	</delete>
+
+
+	<update id="update" parameterType="GuaranteeItem">
+		update t_guaranteeitem
+		<set>
+			guarantee_id=#{guarantee.id},
+			repairTime=#{repairTime},
+			employee_id=#{employee.id},
+			intro=#{intro},
+			<if test="status!=null and status!=0">
+				status=#{status}
+			</if>
+		</set>
+		where
+		id=#{id}
+	</update>
+
+	<!--添加 void save(T t); -->
+	<insert id="save" parameterType="GuaranteeItem" keyProperty="id"
+		useGeneratedKeys="true">
+		insert into
+		t_guaranteeitem(guarantee_id,repairTime,employee_id,intro,status)
+		values(#{guarantee.id},#{repairTime},#{employee.id},#{intro},#{status})
+	</insert>
+
+	<sql id="whereSql">
+		<where>
+			<if test="guaranteeId!=null">
+				item.guarantee_id=#{guaranteeId}
+			</if>
+		</where>
+	</sql>
+
+	<!--long getTotalByQuery(BaseQuery query);//根据条件查询总条数 -->
+	<select id="queryCount" parameterType="GuaranteeItemQuery"
+		resultType="long">
+		select count(*) from t_guaranteeitem item
+		<include refid="whereSql" />
+	</select>
+
+	<!-- List<T> getData(BaseQuery query);//根据条件查询数据； -->
+	<select id="queryPage" parameterType="GuaranteeItemQuery"
+		resultMap="guaranteeItemResultMap">
+		select
+
+		item.id,
+		item.repairTime,
+		item.intro,
+		item.status,
+		
+		con.id conid,
+		con.sn consn,
+		
+		emp.id empid,
+		emp.realName empName
+
+		FROM t_guaranteeitem item
+		left join t_guarantee con on(item.guarantee_id = con.id)
+		left join t_employee emp on(item.employee_id = emp.id)
+		<include refid="whereSql" />
+		<if test="pageSize!=-1">
+			limit #{start},#{pageSize}
+		</if>
+	</select>
+
+	<resultMap type="GuaranteeItem" id="guaranteeItemResultMap">
+		<id column="id" property="id" />
+		<result column="repairTime" property="repairTime" />
+		<result column="intro" property="intro" />
+		<result column="status" property="status" />
+		
+		<association property="guarantee" javaType="Guarantee">
+			<id column="conid" property="id" />
+			<result column="consn" property="sn" />
+		</association>
+		
+		<association property="employee" javaType="Employee">
+			<id column="empid" property="id" />
+			<result column="empName" property="realName" />
+		</association>
+	</resultMap>
+
+	<!-- public List<GuaranteeItem> getItem(Long id)查询明细的数据 -->
+	<select id="getItem" parameterType="long" resultType="GuaranteeItem">
+		select
+		*
+		from t_guaranteeitem
+		where guarantee_id=#{id}
+	</select>
+	
+	<!-- PageList<Order> getAllSeller(); -->
+	<select id="getRepairer" resultType="Employee">
+		select
+		e.id,
+		e.realName
+		from
+		t_employee e
+		left join t_employee_role er on(e.id=er.employee_id)
+		left
+		join t_role r on(er.role_id=r.id)
+		where r.sn
+		in('repairer')
+	</select>
+
+</mapper>
